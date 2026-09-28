@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#173b6f" />
+  <meta name="description" content="Dashboard gestionale per SRL: entrate, uscite, IVA, IRES, IRAP, utile e liquidità." />
+  <title>Gestione SRL – Entrate e Uscite</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1>GESTIONE SRL – ENTRATE E USCITE</h1>
+        <p>Ricavi, costi, IVA, imposte, utile e liquidità</p>
+      </div>
+      <div class="top-icon" aria-hidden="true">▣</div>
+    </header>
+
+    <section id="dashboardView" class="view active">
+      <section class="period-bar">
+        <div class="field grow">
+          <label for="periodYear">ANNO DI ANALISI</label>
+          <select id="periodYear"></select>
+        </div>
+        <button id="goCurrentYearBtn" class="secondary-btn small-btn" type="button">ANNO CORRENTE</button>
+      </section>
+
+      <section class="input-card stacked-card">
+        <div class="field-row">
+          <div class="field grow">
+            <label for="movementType">TIPO MOVIMENTO</label>
+            <select id="movementType">
+              <option value="income">Entrata / Ricavo</option>
+              <option value="expense">Uscita / Costo</option>
+              <option value="capital_in">Entrata finanziaria (socio/finanziamento)</option>
+              <option value="capital_out">Uscita finanziaria non deducibile</option>
+              <option value="vat_payment">Versamento IVA</option>
+              <option value="tax_payment">Versamento IRES / IRAP</option>
+              <option value="dividend_payment">Pagamento dividendi</option>
+            </select>
+          </div>
+          <div class="field grow">
+            <label for="amount" id="amountLabel">IMPONIBILE</label>
+            <div class="amount-wrap compact"><span>€</span><input id="amount" inputmode="decimal" placeholder="0,00" autocomplete="off" /></div>
+          </div>
+        </div>
+
+        <div class="field-row economic-only">
+          <div class="field grow">
+            <label for="vatRate">ALIQUOTA IVA</label>
+            <select id="vatRate">
+              <option value="22">22%</option>
+              <option value="10">10%</option>
+              <option value="5">5%</option>
+              <option value="4">4%</option>
+              <option value="0">0% / Esente / Fuori campo</option>
+            </select>
+          </div>
+          <div class="field grow expense-only">
+            <label for="vatDeductibility">IVA DETRAIBILE</label>
+            <div class="percent-input"><input id="vatDeductibility" type="number" min="0" max="100" step="1" value="100" /><span>%</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="description-card">
+        <div class="field-row">
+          <div class="field grow">
+            <label for="category">CATEGORIA</label>
+            <input id="category" type="text" list="categorySuggestions" placeholder="Es. Vendite, affitto, software, consulenza..." />
+            <datalist id="categorySuggestions">
+              <option value="Vendite / Prestazioni"></option><option value="Affitto"></option><option value="Utenze"></option><option value="Software"></option><option value="Consulenze"></option><option value="Pubblicità"></option><option value="Trasferte"></option><option value="Auto"></option><option value="Personale"></option><option value="Attrezzature"></option><option value="Assicurazioni"></option><option value="Banche"></option><option value="Imposte e tributi"></option>
+            </datalist>
+          </div>
+          <div class="field date-field">
+            <label for="movementDate">DATA</label>
+            <input id="movementDate" type="date" />
+          </div>
+        </div>
+        <label for="description">DESCRIZIONE</label>
+        <input id="description" type="text" placeholder="Descrizione del movimento" />
+      </section>
+
+      <section class="description-card expense-only" id="deductibilityCard">
+        <div class="field-row">
+          <div class="field grow">
+            <label for="taxDeductibility">DEDUCIBILITÀ IRES DEL COSTO</label>
+            <div class="percent-input"><input id="taxDeductibility" type="number" min="0" max="100" step="1" value="100" /><span>%</span></div>
+          </div>
+          <div class="field grow">
+            <label for="irapDeductibility">DEDUCIBILITÀ IRAP DEL COSTO</label>
+            <div class="percent-input"><input id="irapDeductibility" type="number" min="0" max="100" step="1" value="100" /><span>%</span></div>
+          </div>
+        </div>
+      </section>
+
+      <p class="hint" id="movementHint">I calcoli si aggiornano in tempo reale. Per i costi puoi impostare separatamente detraibilità IVA e deducibilità fiscale.</p>
+
+      <section class="cards-grid">
+        <article class="calc-card"><div class="icon">€</div><h3>Ricavi</h3><p>imponibile delle entrate</p><strong id="previewRevenue">€ 0,00</strong></article>
+        <article class="calc-card"><div class="icon">−</div><h3>Costi</h3><p>costi economici registrati</p><strong id="previewCosts">€ 0,00</strong></article>
+        <article class="calc-card"><div class="icon">IVA</div><h3>IVA Residua</h3><p>debito IVA stimato al netto dei versamenti</p><strong id="previewVat">€ 0,00</strong></article>
+        <article class="calc-card"><div class="icon">%</div><h3>IRES Stimata</h3><p>su base imponibile positiva</p><strong id="previewIres">€ 0,00</strong></article>
+        <article class="calc-card"><div class="icon">IR</div><h3>IRAP Stimata</h3><p>su base IRAP stimata positiva</p><strong id="previewIrap">€ 0,00</strong></article>
+        <article class="calc-card accent"><div class="icon">↗</div><h3>Utile Netto Stimato</h3><p>utile ante imposte − IRES − IRAP</p><strong id="previewNetProfit">€ 0,00</strong></article>
+      </section>
+
+      <button id="saveMovementBtn" class="primary-btn" type="button">REGISTRA MOVIMENTO</button>
+
+      <section class="totals">
+        <div><span>Incassi operativi IVA inclusa</span><strong id="grossReceipts">€ 0,00</strong></div>
+        <div><span>Pagamenti operativi IVA inclusa</span><strong id="grossPayments">€ 0,00</strong></div>
+        <div><span>Risultato economico ante imposte</span><strong id="preTaxProfit">€ 0,00</strong></div>
+        <div><span>Costi fiscalmente deducibili IRES</span><strong id="deductibleCostsIres">€ 0,00</strong></div>
+        <div><span>Imponibile IRES stimato</span><strong id="taxableProfit">€ 0,00</strong></div>
+        <div><span>Base IRAP stimata</span><strong id="irapBase">€ 0,00</strong></div>
+        <div><span>IRES + IRAP stimate</span><strong id="totalTaxes">€ 0,00</strong></div>
+        <div><span>Imposte già versate registrate</span><strong id="taxesPaid">€ 0,00</strong></div>
+      </section>
+
+      <section class="grand-total">
+        <span>Liquidità prudenziale disponibile</span>
+        <strong id="cashAfterTaxes">€ 0,00</strong>
+        <small>Cassa registrata meno IVA e imposte stimate ancora da versare.</small>
+      </section>
+
+      <section class="simulation-card">
+        <div class="section-head compact-head"><h2>DISTRIBUZIONE UTILE</h2></div>
+        <div class="sim-row"><span>Utile netto stimato</span><strong id="netProfitForDistribution">€ 0,00</strong></div>
+        <div class="sim-row"><span>Riserva legale stimata</span><strong id="legalReserveAccrual">€ 0,00</strong></div>
+        <div class="sim-row"><span>Utile potenzialmente distribuibile</span><strong id="distributableProfit">€ 0,00</strong></div>
+        <div class="field-row distribution-control"><div class="field grow"><label for="distributionPercent">QUOTA DA DISTRIBUIRE</label><div class="percent-input"><input id="distributionPercent" type="number" min="0" max="100" value="100" /><span>%</span></div></div></div>
+        <div class="sim-row"><span>Dividendo lordo simulato</span><strong id="grossDividend">€ 0,00</strong></div>
+        <div class="sim-row"><span>Ritenuta dividendi stimata</span><strong id="dividendTax">€ 0,00</strong></div>
+        <div class="sim-row final"><span>Dividendo netto al socio</span><strong id="netDividend">€ 0,00</strong></div>
+      </section>
+
+      <section class="simulation-card">
+        <div class="section-head compact-head"><h2>ANDAMENTO MENSILE</h2></div>
+        <div class="monthly-table-wrap"><table class="monthly-table"><thead><tr><th>Mese</th><th>Ricavi</th><th>Costi</th><th>Saldo operativo</th></tr></thead><tbody id="monthlyTableBody"></tbody></table></div>
+      </section>
+    </section>
+
+    <section id="movementsView" class="view">
+      <div class="section-head"><h2>MOVIMENTI</h2><button id="clearAllBtn" class="danger-link" type="button">Cancella tutto</button></div>
+      <div class="filter-row">
+        <select id="movementFilter"><option value="all">Tutti i tipi</option><option value="income">Entrate / Ricavi</option><option value="expense">Uscite / Costi</option><option value="capital_in">Entrate finanziarie</option><option value="capital_out">Uscite finanziarie</option><option value="vat_payment">Versamenti IVA</option><option value="tax_payment">Versamenti imposte</option><option value="dividend_payment">Dividendi pagati</option></select>
+        <input id="searchMovement" type="search" placeholder="Cerca categoria o descrizione..." />
+      </div>
+      <div id="movementList" class="invoice-list"></div>
+      <div id="emptyState" class="empty-state">Nessun movimento registrato nel periodo selezionato.</div>
+    </section>
+
+    <section id="settingsView" class="view">
+      <div class="section-head"><h2>IMPOSTAZIONI FISCALI</h2></div>
+      <section class="settings-card">
+        <div class="settings-row"><div><strong>Aliquota IRES</strong><small>Impostazione modificabile</small></div><div class="percent-input small"><input id="iresRate" type="number" min="0" max="100" step="0.01" value="24" /><span>%</span></div></div>
+        <div class="settings-row"><div><strong>Aliquota IRAP</strong><small>Va verificata per Regione e attività</small></div><div class="percent-input small"><input id="irapRate" type="number" min="0" max="100" step="0.01" value="3.9" /><span>%</span></div></div>
+        <div class="settings-row"><div><strong>Tassazione dividendi</strong><small>Impostazione modificabile</small></div><div class="percent-input small"><input id="dividendRate" type="number" min="0" max="100" step="0.01" value="26" /><span>%</span></div></div>
+        <div class="settings-row"><div><strong>Capitale sociale</strong><small>Serve per stimare il limite della riserva legale</small></div><div class="money-input small"><span>€</span><input id="shareCapital" type="number" min="0" step="100" value="10000" /></div></div>
+        <div class="settings-row"><div><strong>Riserva legale già accantonata</strong><small>Valore all'inizio del periodo</small></div><div class="money-input small"><span>€</span><input id="legalReserveCurrent" type="number" min="0" step="100" value="0" /></div></div>
+        <div class="settings-row"><div><strong>Saldo iniziale cassa/banca</strong><small>Per il calcolo della liquidità reale</small></div><div class="money-input small"><span>€</span><input id="openingCash" type="number" step="100" value="0" /></div></div>
+        <div class="settings-row"><div><strong>Credito IVA iniziale</strong><small>Credito riportato da periodo precedente</small></div><div class="money-input small"><span>€</span><input id="openingVatCredit" type="number" min="0" step="100" value="0" /></div></div>
+        <div class="settings-row"><div><strong>Variazioni fiscali IRES in aumento</strong><small>Rettifiche manuali extra rispetto ai costi registrati</small></div><div class="money-input small"><span>€</span><input id="iresAdditions" type="number" min="0" step="100" value="0" /></div></div>
+        <div class="settings-row"><div><strong>Variazioni fiscali IRES in diminuzione</strong><small>Rettifiche manuali</small></div><div class="money-input small"><span>€</span><input id="iresReductions" type="number" min="0" step="100" value="0" /></div></div>
+        <div class="settings-row"><div><strong>Variazione manuale base IRAP</strong><small>Valore positivo o negativo</small></div><div class="money-input small"><span>€</span><input id="irapAdjustment" type="number" step="100" value="0" /></div></div>
+      </section>
+      <button id="saveSettingsBtn" class="primary-btn" type="button">SALVA IMPOSTAZIONI</button>
+
+      <section class="simulation-card">
+        <div class="section-head compact-head"><h2>BACKUP E DATI</h2></div>
+        <div class="button-grid">
+          <button id="exportCsvBtn" class="secondary-btn" type="button">ESPORTA CSV</button>
+          <button id="exportBackupBtn" class="secondary-btn" type="button">ESPORTA BACKUP</button>
+          <label class="secondary-btn file-btn">IMPORTA BACKUP<input id="importBackupInput" type="file" accept="application/json,.json" hidden /></label>
+        </div>
+      </section>
+
+      <section class="notice-card">
+        <strong>Nota importante</strong>
+        <p>Questa app è uno strumento gestionale e di simulazione, non sostituisce contabilità, bilancio o dichiarazioni fiscali. La base IRAP, la deducibilità dei costi, la detraibilità IVA, le perdite fiscali, gli ammortamenti e altre componenti possono richiedere rettifiche specifiche. Le percentuali e le variazioni manuali servono ad allineare la simulazione alle indicazioni del commercialista.</p>
+      </section>
+    </section>
+
+    <nav class="bottom-nav three-cols" aria-label="Navigazione principale">
+      <button id="dashboardTab" class="nav-btn active" type="button">DASHBOARD</button>
+      <button id="movementsTab" class="nav-btn" type="button">MOVIMENTI</button>
+      <button id="settingsTab" class="nav-btn" type="button">IMPOSTAZIONI</button>
+    </nav>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

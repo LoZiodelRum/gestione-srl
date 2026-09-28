@@ -1,0 +1,13 @@
+{
+  "name": "Gestione SRL – Entrate e Uscite",
+  "short_name": "Gestione SRL",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#173b6f",
+  "description": "Dashboard gestionale SRL per entrate, uscite, IVA, IRES, IRAP, utile e liquidità.",
+  "icons": [
+    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
