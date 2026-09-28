@@ -1,195 +1,115 @@
-const euro = new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'});
 const $ = id => document.getElementById(id);
-const STORAGE_MOVEMENTS='srl_movements_v2';
-const STORAGE_SETTINGS='srl_settings_v2';
+const STORE = { incomes:'srl_v2_incomes', expenses:'srl_v2_expenses', taxPayments:'srl_v2_taxpayments', settings:'srl_v2_settings' };
+const MONTHS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const DEFAULT_SETTINGS = { iresRate:24, irapRate:3.9, openingCash:0, openingVatCredit:0, iresAdjustments:0, irapAdjustments:0 };
+let incomes = load(STORE.incomes, []), expenses = load(STORE.expenses, []), taxPayments = load(STORE.taxPayments, []), settings = Object.assign({}, DEFAULT_SETTINGS, load(STORE.settings, {}));
 
-let movements = loadJSON(STORAGE_MOVEMENTS, []);
-let settings = Object.assign({
-  iresRate:24,
-  irapRate:3.9,
-  dividendRate:26,
-  shareCapital:10000,
-  legalReserveCurrent:0,
-  openingCash:0,
-  openingVatCredit:0,
-  iresAdditions:0,
-  iresReductions:0,
-  irapAdjustment:0
-}, loadJSON(STORAGE_SETTINGS, {}));
+function load(k,f){try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}}
+function persist(){localStorage.setItem(STORE.incomes,JSON.stringify(incomes));localStorage.setItem(STORE.expenses,JSON.stringify(expenses));localStorage.setItem(STORE.taxPayments,JSON.stringify(taxPayments));localStorage.setItem(STORE.settings,JSON.stringify(settings));}
+function num(v){if(typeof v==='number')return Number.isFinite(v)?v:0; if(v==null)return 0; const s=String(v).trim().replace(/\s/g,'').replace(/\./g,'').replace(',','.'); const n=Number(s); return Number.isFinite(n)?n:0}
+function clampPct(v){return Math.min(100,Math.max(0,num(v)))}
+function money(v){return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(v)||0)}
+function today(){return new Date().toISOString().slice(0,10)}
+function curYear(){return new Date().getFullYear()}
+function ymdYear(d){return Number(String(d||'').slice(0,4))||0}
+function ymdMonth(d){return Number(String(d||'').slice(5,7))||0}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+function safe(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function byPeriod(arr,year,month='all'){return arr.filter(x=>ymdYear(x.date)===Number(year)&&(month==='all'||ymdMonth(x.date)===Number(month)))}
+function sum(arr,fn){return arr.reduce((a,x)=>a+(Number(fn(x))||0),0)}
 
-function loadJSON(key,fallback){try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback));}catch{return fallback;}}
-function num(v){if(typeof v==='number')return Number.isFinite(v)?v:0;return parseFloat(String(v??'0').trim().replace(/\s/g,'').replace(/\./g,'').replace(',','.'))||0;}
-function clamp(v,min,max){return Math.min(max,Math.max(min,num(v)));}
-function fmt(v){return euro.format(Number.isFinite(v)?v:0);}
-function today(){return new Date().toISOString().slice(0,10);}
-function currentYear(){return new Date().getFullYear();}
-function saveMovements(){localStorage.setItem(STORAGE_MOVEMENTS,JSON.stringify(movements));}
-function saveSettings(){localStorage.setItem(STORAGE_SETTINGS,JSON.stringify(settings));}
-function escapeHtml(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));}
-function formatDate(s){if(!s)return'';const [y,m,d]=s.split('-');return `${d}/${m}/${y}`;}
-function selectedYear(){return Number($('periodYear').value)||currentYear();}
-function inSelectedYear(m){return String(m.date||'').startsWith(String(selectedYear()));}
-function selectedMovements(){return movements.filter(inSelectedYear);}
-
-const TYPE_LABELS={
-  income:'Entrata / Ricavo',expense:'Uscita / Costo',capital_in:'Entrata finanziaria',capital_out:'Uscita finanziaria',vat_payment:'Versamento IVA',tax_payment:'Versamento imposte',dividend_payment:'Pagamento dividendi'
-};
-
-function isEconomicType(type){return type==='income'||type==='expense';}
-function isCashIn(type){return type==='income'||type==='capital_in';}
-function isCashOut(type){return ['expense','capital_out','vat_payment','tax_payment','dividend_payment'].includes(type);}
-
-function movementFromForm(){
-  const type=$('movementType').value;
-  const amount=num($('amount').value);
-  const economic=isEconomicType(type);
-  const vatRate=economic?num($('vatRate').value):0;
-  const vat=amount*vatRate/100;
-  return {
-    id:(crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`),
-    type,amount,vatRate,vat,
-    vatDeductibility:type==='expense'?clamp($('vatDeductibility').value,0,100):0,
-    taxDeductibility:type==='expense'?clamp($('taxDeductibility').value,0,100):0,
-    irapDeductibility:type==='expense'?clamp($('irapDeductibility').value,0,100):0,
-    category:$('category').value.trim(),description:$('description').value.trim(),date:$('movementDate').value||today()
-  };
-}
-
-function summarize(list=selectedMovements(), extra=null){
-  const arr=extra?[...list,extra]:list;
-  let revenue=0,costs=0,grossReceipts=0,grossPayments=0,vatOut=0,vatInDed=0,deductibleCostsIres=0,deductibleCostsIrap=0;
-  let cashInFinancial=0,cashOutFinancial=0,vatPayments=0,taxPayments=0,dividendPayments=0;
-  for(const m of arr){
-    const amount=num(m.amount), vat=num(m.vat);
-    switch(m.type){
-      case'income': revenue+=amount;grossReceipts+=amount+vat;vatOut+=vat;break;
-      case'expense': costs+=amount;grossPayments+=amount+vat;vatInDed+=vat*clamp(m.vatDeductibility,0,100)/100;deductibleCostsIres+=amount*clamp(m.taxDeductibility,0,100)/100;deductibleCostsIrap+=amount*clamp(m.irapDeductibility,0,100)/100;break;
-      case'capital_in': cashInFinancial+=amount;break;
-      case'capital_out': cashOutFinancial+=amount;break;
-      case'vat_payment': vatPayments+=amount;cashOutFinancial+=amount;break;
-      case'tax_payment': taxPayments+=amount;cashOutFinancial+=amount;break;
-      case'dividend_payment': dividendPayments+=amount;cashOutFinancial+=amount;break;
-    }
+function calcIncome(i){const net=num(i.amount), rate=num(i.vatRate), vat=net*rate/100, gross=net+vat; return {net,vat,gross,cash:i.paid==='yes'?gross:0}}
+function calcExpense(e){
+  if(e.type==='salary'||e.type==='administrator'){
+    const gross=num(e.payrollGross), net=num(e.payrollNet), irpef=num(e.payrollIrpef), empSocial=num(e.payrollEmployeeSocial), employerSocial=num(e.payrollEmployerSocial), tfr=num(e.payrollTfr), otherCost=num(e.payrollOtherCost), otherDue=num(e.payrollOtherDue);
+    const economicCost=gross+employerSocial+tfr+otherCost;
+    const withholding=irpef;
+    const social=empSocial+employerSocial+otherDue;
+    const cash=e.paid==='yes'?net:0;
+    return {economicCost,vat:0,vatDeduct:0,cash,withholding,social,iresDeduct:economicCost,irapDeduct:economicCost,grossDocument:economicCost};
   }
-  const vatPosition=vatOut-vatInDed-settings.openingVatCredit;
-  const vatDueGross=Math.max(0,vatPosition);
-  const vatCredit=Math.max(0,-vatPosition);
-  const vatDueRemaining=Math.max(0,vatDueGross-vatPayments);
+  const base=num(e.amount), pension=base*num(e.pensionRate)/100, vatBase=base+pension, vat=vatBase*num(e.vatRate)/100, withholding=base*num(e.withholdingRate)/100, grossDocument=vatBase+vat, supplierPay=grossDocument-withholding;
+  const vatDeduct=vat*clampPct(e.vatDeduct)/100;
+  const economicCost=base+pension;
+  const cash=e.paid==='yes'?supplierPay:0;
+  return {economicCost,vat,vatDeduct,cash,withholding,social:0,iresDeduct:economicCost*clampPct(e.iresDeduct)/100,irapDeduct:economicCost*clampPct(e.irapDeduct)/100,grossDocument};
+}
+function paymentTotals(year,month='all'){
+  const p=byPeriod(taxPayments,year,month); const obj={vat:0,withholding:0,social:0,ires:0,irap:0,other:0,total:0};
+  p.forEach(x=>{const a=num(x.amount); if(obj[x.type]!==undefined)obj[x.type]+=a; obj.total+=a}); return obj;
+}
+function summary(year,month='all'){
+  const inc=byPeriod(incomes,year,month), exp=byPeriod(expenses,year,month), pay=paymentTotals(year,month);
+  const ic=inc.map(calcIncome), ec=exp.map(calcExpense);
+  const revenue=sum(ic,x=>x.net), vatOut=sum(ic,x=>x.vat), customerReceipts=sum(ic,x=>x.cash);
+  const costs=sum(ec,x=>x.economicCost), vatIn=sum(ec,x=>x.vatDeduct), cashExpense=sum(ec,x=>x.cash);
+  const withholdingGenerated=sum(ec,x=>x.withholding), socialGenerated=sum(ec,x=>x.social);
+  const iresDeductibleCosts=sum(ec,x=>x.iresDeduct), irapDeductibleCosts=sum(ec,x=>x.irapDeduct);
   const preTaxProfit=revenue-costs;
-  const iresBaseBeforeAdjustments=revenue-deductibleCostsIres;
-  const taxableProfit=Math.max(0,iresBaseBeforeAdjustments+num(settings.iresAdditions)-num(settings.iresReductions));
-  const irapBase=Math.max(0,revenue-deductibleCostsIrap+num(settings.irapAdjustment));
-  const ires=taxableProfit*clamp(settings.iresRate,0,100)/100;
-  const irap=irapBase*clamp(settings.irapRate,0,100)/100;
-  const taxesEstimated=ires+irap;
-  const taxesRemaining=Math.max(0,taxesEstimated-taxPayments);
-  const netProfit=preTaxProfit-taxesEstimated;
-  const legalReserveCap=Math.max(0,num(settings.shareCapital)*0.20-num(settings.legalReserveCurrent));
-  const legalReserveAccrual=netProfit>0?Math.min(netProfit*0.05,legalReserveCap):0;
-  const distributable=Math.max(0,netProfit-legalReserveAccrual);
-  const registeredCash=num(settings.openingCash)+grossReceipts+cashInFinancial-grossPayments-cashOutFinancial;
-  const prudentCash=registeredCash-vatDueRemaining-taxesRemaining;
-  return {revenue,costs,grossReceipts,grossPayments,vatOut,vatInDed,vatDueGross,vatCredit,vatPayments,vatDueRemaining,deductibleCostsIres,deductibleCostsIrap,preTaxProfit,iresBaseBeforeAdjustments,taxableProfit,irapBase,ires,irap,taxesEstimated,taxPayments,taxesRemaining,netProfit,legalReserveAccrual,distributable,cashInFinancial,cashOutFinancial,dividendPayments,registeredCash,prudentCash};
+  const iresBase=Math.max(0,revenue-iresDeductibleCosts+num(settings.iresAdjustments));
+  const irapBase=Math.max(0,revenue-irapDeductibleCosts+num(settings.irapAdjustments));
+  const ires=iresBase*num(settings.iresRate)/100, irap=irapBase*num(settings.irapRate)/100;
+  const netProfit=preTaxProfit-ires-irap;
+  const openingVat=(month==='all'?num(settings.openingVatCredit):0);
+  const vatDue=Math.max(0,vatOut-vatIn-openingVat-pay.vat), vatCredit=Math.max(0,vatIn+openingVat+pay.vat-vatOut);
+  const withholdingDue=Math.max(0,withholdingGenerated-pay.withholding);
+  const socialDue=Math.max(0,socialGenerated-pay.social);
+  const iresDue=Math.max(0,ires-pay.ires), irapDue=Math.max(0,irap-pay.irap);
+  const cashFlow=customerReceipts-cashExpense-pay.total;
+  const openingCash=(month==='all'?num(settings.openingCash):0);
+  const cashBalance=openingCash+cashFlow;
+  const prudentCash=cashBalance-vatDue-withholdingDue-socialDue-iresDue-irapDue;
+  return {revenue,vatOut,customerReceipts,costs,vatIn,cashExpense,withholdingGenerated,socialGenerated,iresDeductibleCosts,irapDeductibleCosts,preTaxProfit,iresBase,irapBase,ires,irap,netProfit,vatDue,vatCredit,withholdingDue,socialDue,iresDue,irapDue,payments:pay,cashFlow,cashBalance,prudentCash};
 }
 
-function populateYears(){
-  const years=new Set([currentYear(),...movements.map(m=>Number(String(m.date||'').slice(0,4))).filter(Boolean)]);
-  const currentSelection=Number($('periodYear').value)||currentYear();
-  $('periodYear').innerHTML=[...years].sort((a,b)=>b-a).map(y=>`<option value="${y}">${y}</option>`).join('');
-  $('periodYear').value=String(years.has(currentSelection)?currentSelection:currentYear());
+function allYears(){const ys=new Set([curYear(),...incomes.map(x=>ymdYear(x.date)),...expenses.map(x=>ymdYear(x.date)),...taxPayments.map(x=>ymdYear(x.date))]);return [...ys].filter(Boolean).sort((a,b)=>b-a)}
+function fillYears(){const ys=allYears(); ['dashYear','incomeYearFilter','expenseYearFilter','taxYear'].forEach(id=>{const el=$(id); const old=el.value; el.innerHTML=ys.map(y=>`<option value="${y}">${y}</option>`).join(''); el.value=ys.includes(Number(old))?old:String(curYear())}); if(!$('dashYear').value)$('dashYear').value=String(curYear()); if(!$('taxYear').value)$('taxYear').value=String(curYear())}
+function fillMonths(){if($('dashMonth').options.length>1)return; MONTHS.forEach((m,i)=>$('dashMonth').insertAdjacentHTML('beforeend',`<option value="${i+1}">${m}</option>`))}
+
+function setView(name){['dashboard','income','expense','tax','settings'].forEach(v=>{$(v+'View').classList.toggle('active',v===name);$(v+'Tab').classList.toggle('active',v===name)}); if(name==='dashboard')renderDashboard(); if(name==='income')renderIncome(); if(name==='expense')renderExpense(); if(name==='tax')renderTax(); window.scrollTo({top:0,behavior:'smooth'})}
+
+function renderDashboard(){const y=Number($('dashYear').value)||curYear(), m=$('dashMonth').value||'all', s=summary(y,m); $('periodLabel').textContent=m==='all'?String(y):`${MONTHS[Number(m)-1]} ${y}`; $('monthlyYearLabel').textContent=String(y);
+  $('dashRevenue').textContent=money(s.revenue);$('dashVatOut').textContent=money(s.vatOut);$('dashCosts').textContent=money(s.costs);$('dashVatIn').textContent=money(s.vatIn);$('dashCashFlow').textContent=money(s.cashFlow);$('dashNetProfit').textContent=money(s.netProfit);$('dashCustomerReceipts').textContent=money(s.customerReceipts);$('dashCashOut').textContent=money(s.cashExpense+s.payments.total);$('dashVatBalance').textContent=s.vatDue>0?money(s.vatDue):`Credito ${money(s.vatCredit)}`;$('dashWithholdings').textContent=money(s.withholdingDue);$('dashSocial').textContent=money(s.socialDue);$('dashCorpTaxes').textContent=money(s.iresDue+s.irapDue);$('dashPrudentCash').textContent=money(s.prudentCash);
+  $('monthlyTableBody').innerHTML=MONTHS.map((name,i)=>{const x=summary(y,i+1);return `<tr><td>${name.slice(0,3)}</td><td>${money(x.revenue)}</td><td>${money(x.costs)}</td><td>${money(x.vatDue)}</td><td>${money(x.cashFlow)}</td><td>${money(x.netProfit)}</td></tr>`}).join('');
 }
 
-function renderSummary(usePreview=true){
-  const m=movementFromForm();
-  const preview=usePreview&&m.amount>0&&String(m.date).startsWith(String(selectedYear()))?m:null;
-  const s=summarize(selectedMovements(),preview);
-  $('previewRevenue').textContent=fmt(s.revenue);
-  $('previewCosts').textContent=fmt(s.costs);
-  $('previewVat').textContent=s.vatDueRemaining>0?fmt(s.vatDueRemaining):(s.vatCredit>0?`Credito ${fmt(s.vatCredit)}`:fmt(0));
-  $('previewIres').textContent=fmt(s.ires);
-  $('previewIrap').textContent=fmt(s.irap);
-  $('previewNetProfit').textContent=fmt(s.netProfit);
-  $('grossReceipts').textContent=fmt(s.grossReceipts);
-  $('grossPayments').textContent=fmt(s.grossPayments);
-  $('preTaxProfit').textContent=fmt(s.preTaxProfit);
-  $('deductibleCostsIres').textContent=fmt(s.deductibleCostsIres);
-  $('taxableProfit').textContent=fmt(s.taxableProfit);
-  $('irapBase').textContent=fmt(s.irapBase);
-  $('totalTaxes').textContent=fmt(s.taxesEstimated);
-  $('taxesPaid').textContent=fmt(s.taxPayments);
-  $('cashAfterTaxes').textContent=fmt(s.prudentCash);
-  renderDistribution(s);
-  renderMonthlyTable(preview);
+function incomePreview(){const c=calcIncome({amount:$('incomeAmount').value,vatRate:$('incomeVatRate').value,paid:$('incomePaid').value});$('incomePreviewNet').textContent=money(c.net);$('incomePreviewVat').textContent=money(c.vat);$('incomePreviewGross').textContent=money(c.gross)}
+function saveIncome(){const amount=num($('incomeAmount').value); if(amount<=0){alert('Inserisci un importo maggiore di zero.');return} incomes.unshift({id:uid(),date:$('incomeDate').value||today(),amount,vatRate:num($('incomeVatRate').value),customer:$('incomeCustomer').value.trim(),docNo:$('incomeInvoiceNo').value.trim(),category:$('incomeCategory').value.trim(),description:$('incomeDescription').value.trim(),paid:$('incomePaid').value,paymentMethod:$('incomePaymentMethod').value}); persist(); $('incomeAmount').value='';$('incomeCustomer').value='';$('incomeInvoiceNo').value='';$('incomeDescription').value=''; incomePreview(); fillYears(); renderIncome();renderDashboard();alert('Entrata registrata.')}
+function renderIncome(){const y=Number($('incomeYearFilter').value)||curYear(), q=$('incomeSearch').value.trim().toLowerCase(); const list=incomes.filter(x=>ymdYear(x.date)===y&&[x.customer,x.docNo,x.category,x.description].join(' ').toLowerCase().includes(q)); const cc=list.map(calcIncome); $('incomeTotalNet').textContent=money(sum(cc,x=>x.net));$('incomeTotalVat').textContent=money(sum(cc,x=>x.vat));$('incomeTotalGross').textContent=money(sum(cc,x=>x.gross));$('incomeTotalPaid').textContent=money(sum(cc,x=>x.cash)); $('incomeList').innerHTML=list.map(x=>{const c=calcIncome(x);return `<article class="invoice-item"><div class="invoice-top"><strong>${money(c.net)} + IVA ${money(c.vat)}</strong><span>${safe(x.date)}</span></div><div class="invoice-desc">${safe(x.customer||'Cliente non indicato')} · ${safe(x.description||x.category||'Entrata')}</div><div class="invoice-meta">Totale cliente: ${money(c.gross)} · ${x.paid==='yes'?'Incassata':'Da incassare'} · ${safe(x.paymentMethod||'')} ${x.docNo?'· Doc. '+safe(x.docNo):''}</div><div class="invoice-actions"><button data-del-income="${x.id}">Elimina</button></div></article>`}).join(''); $('incomeEmpty').classList.toggle('hidden',list.length>0); document.querySelectorAll('[data-del-income]').forEach(b=>b.onclick=()=>{if(confirm('Eliminare questa entrata?')){incomes=incomes.filter(x=>x.id!==b.dataset.delIncome);persist();fillYears();renderIncome();renderDashboard();renderTax()}})}
+
+const standardTypes=new Set(['supplier','professional','rent','asset','bank','insurance','taxcost','reimbursement','other']);
+function syncExpenseType(){const t=$('expenseType').value, payroll=t==='salary'||t==='administrator'; $('standardExpenseForm').classList.toggle('hidden',payroll);$('payrollExpenseForm').classList.toggle('hidden',!payroll);$('professionalExtras').classList.toggle('hidden',t!=='professional');
+  const presets={supplier:[22,100,100,100],professional:[22,100,100,100],rent:[0,0,100,100],asset:[22,100,100,100],bank:[0,0,100,100],insurance:[0,0,100,100],taxcost:[0,0,100,100],reimbursement:[0,0,100,100],other:[22,100,100,100]};
+  if(!payroll&&presets[t]){const [v,vd,id,ird]=presets[t];$('expenseVatRate').value=String(v);$('expenseVatDeduct').value=vd;$('expenseIresDeduct').value=id;$('expenseIrapDeduct').value=ird; if(t!=='professional'){$('expensePensionRate').value=0;$('expenseWithholdingRate').value=0}else{$('expenseWithholdingRate').value=20}}
+  const cats={supplier:'Fornitori',professional:'Consulenze professionali',salary:'Personale dipendente',administrator:'Compenso amministratore',rent:'Affitto / locazione',asset:'Beni strumentali',bank:'Banche / commissioni',insurance:'Assicurazioni',taxcost:'Imposte e tributi',reimbursement:'Rimborsi spese',other:'Altro costo'}; $('expenseCategory').value=cats[t]||''; expensePreview(); payrollPreview();
 }
+function expensePreview(){const e={type:$('expenseType').value,amount:$('expenseAmount').value,vatRate:$('expenseVatRate').value,vatDeduct:$('expenseVatDeduct').value,iresDeduct:$('expenseIresDeduct').value,irapDeduct:$('expenseIrapDeduct').value,pensionRate:$('expensePensionRate').value,withholdingRate:$('expenseWithholdingRate').value,paid:$('expensePaid').value}; const c=calcExpense(e);$('expensePreviewVat').textContent=money(c.vat);$('expensePreviewWithholding').textContent=money(c.withholding);$('expensePreviewCash').textContent=money(c.cash)}
+function payrollPreview(){const e={type:$('expenseType').value,payrollGross:$('payrollGross').value,payrollNet:$('payrollNet').value,payrollIrpef:$('payrollIrpef').value,payrollEmployeeSocial:$('payrollEmployeeSocial').value,payrollEmployerSocial:$('payrollEmployerSocial').value,payrollTfr:$('payrollTfr').value,payrollOtherCost:$('payrollOtherCost').value,payrollOtherDue:$('payrollOtherDue').value,paid:$('expensePaid').value};const c=calcExpense(e);$('payrollPreviewCost').textContent=money(c.economicCost);$('payrollPreviewCash').textContent=money(c.cash);$('payrollPreviewDue').textContent=money(c.withholding+c.social)}
+function saveExpense(){const t=$('expenseType').value,payroll=t==='salary'||t==='administrator'; if(payroll&&num($('payrollGross').value)<=0){alert('Inserisci la retribuzione o compenso lordo.');return} if(!payroll&&num($('expenseAmount').value)<=0){alert('Inserisci un importo maggiore di zero.');return}
+  const e={id:uid(),type:t,date:$('expenseDate').value||today(),supplier:$('expenseSupplier').value.trim(),docNo:$('expenseDocNo').value.trim(),category:$('expenseCategory').value.trim(),description:$('expenseDescription').value.trim(),paid:$('expensePaid').value,paymentMethod:$('expensePaymentMethod').value,amount:num($('expenseAmount').value),vatRate:num($('expenseVatRate').value),vatDeduct:clampPct($('expenseVatDeduct').value),iresDeduct:clampPct($('expenseIresDeduct').value),irapDeduct:clampPct($('expenseIrapDeduct').value),pensionRate:num($('expensePensionRate').value),withholdingRate:num($('expenseWithholdingRate').value),payrollGross:num($('payrollGross').value),payrollNet:num($('payrollNet').value),payrollIrpef:num($('payrollIrpef').value),payrollEmployeeSocial:num($('payrollEmployeeSocial').value),payrollEmployerSocial:num($('payrollEmployerSocial').value),payrollTfr:num($('payrollTfr').value),payrollOtherCost:num($('payrollOtherCost').value),payrollOtherDue:num($('payrollOtherDue').value)};
+  expenses.unshift(e);persist(); ['expenseAmount','payrollGross','payrollNet','payrollIrpef','payrollEmployeeSocial','payrollEmployerSocial','payrollTfr','payrollOtherCost','payrollOtherDue','expenseSupplier','expenseDocNo','expenseDescription'].forEach(id=>$(id).value='');expensePreview();payrollPreview();fillYears();renderExpense();renderDashboard();renderTax();alert('Uscita registrata.')}
+function expenseTypeLabel(t){return {supplier:'Fattura fornitore',professional:'Professionista',salary:'Stipendio',administrator:'Compenso amministratore',rent:'Affitto',asset:'Bene strumentale',bank:'Banca/commissioni',insurance:'Assicurazione',taxcost:'Imposta/tributo',reimbursement:'Rimborso spese',other:'Altro costo'}[t]||t}
+function renderExpense(){const y=Number($('expenseYearFilter').value)||curYear(), q=$('expenseSearch').value.trim().toLowerCase(); const list=expenses.filter(x=>ymdYear(x.date)===y&&[x.supplier,x.docNo,x.category,x.description,expenseTypeLabel(x.type)].join(' ').toLowerCase().includes(q)); const cc=list.map(calcExpense); $('expenseTotalCost').textContent=money(sum(cc,x=>x.economicCost));$('expenseTotalVat').textContent=money(sum(cc,x=>x.vat));$('expenseTotalVatDeduct').textContent=money(sum(cc,x=>x.vatDeduct));$('expenseTotalCash').textContent=money(sum(cc,x=>x.cash));$('expenseTotalWithholding').textContent=money(sum(cc,x=>x.withholding));$('expenseTotalSocial').textContent=money(sum(cc,x=>x.social)); $('expenseList').innerHTML=list.map(x=>{const c=calcExpense(x);return `<article class="invoice-item expense"><div class="invoice-top"><strong>${money(c.economicCost)}</strong><span>${safe(x.date)}</span></div><div class="invoice-desc">${safe(x.supplier||'Percettore non indicato')} · ${safe(expenseTypeLabel(x.type))}</div><div class="invoice-meta">${x.type==='salary'||x.type==='administrator'?`Netto: ${money(num(x.payrollNet))} · Ritenute: ${money(c.withholding)} · Contributi/oneri: ${money(c.social)}`:`IVA: ${money(c.vat)} · IVA detraibile: ${money(c.vatDeduct)} · Ritenuta: ${money(c.withholding)}`} · ${x.paid==='yes'?'Pagata':'Da pagare'}${x.docNo?' · Doc. '+safe(x.docNo):''}</div><div class="invoice-actions"><button data-del-expense="${x.id}">Elimina</button></div></article>`}).join(''); $('expenseEmpty').classList.toggle('hidden',list.length>0);document.querySelectorAll('[data-del-expense]').forEach(b=>b.onclick=()=>{if(confirm('Eliminare questa uscita?')){expenses=expenses.filter(x=>x.id!==b.dataset.delExpense);persist();fillYears();renderExpense();renderDashboard();renderTax()}})}
 
-function renderDistribution(s=summarize()){
-  const pct=clamp($('distributionPercent').value,0,100)/100;
-  const gross=s.distributable*pct;
-  const tax=gross*clamp(settings.dividendRate,0,100)/100;
-  $('netProfitForDistribution').textContent=fmt(s.netProfit);
-  $('legalReserveAccrual').textContent=fmt(s.legalReserveAccrual);
-  $('distributableProfit').textContent=fmt(s.distributable);
-  $('grossDividend').textContent=fmt(gross);
-  $('dividendTax').textContent=fmt(tax);
-  $('netDividend').textContent=fmt(gross-tax);
-}
+function renderTax(){const y=Number($('taxYear').value)||curYear(), s=summary(y,'all');$('taxVatDue').textContent=s.vatDue>0?money(s.vatDue):`Credito ${money(s.vatCredit)}`;$('taxWithholdingDue').textContent=money(s.withholdingDue);$('taxSocialDue').textContent=money(s.socialDue);$('taxIresDue').textContent=money(s.iresDue);$('taxIrapDue').textContent=money(s.irapDue);$('taxTotalDue').textContent=money(s.vatDue+s.withholdingDue+s.socialDue+s.iresDue+s.irapDue);$('taxPreTaxProfit').textContent=money(s.preTaxProfit);$('taxIresDeductibleCosts').textContent=money(s.iresDeductibleCosts);$('taxIresBase').textContent=money(s.iresBase);$('taxIrapBase').textContent=money(s.irapBase);$('taxPaymentsTotal').textContent=money(s.payments.total); const list=taxPayments.filter(x=>ymdYear(x.date)===y); $('taxPaymentList').innerHTML=list.map(x=>`<article class="invoice-item tax"><div class="invoice-top"><strong>${money(x.amount)}</strong><span>${safe(x.date)}</span></div><div class="invoice-desc">${safe(({vat:'IVA',withholding:'Ritenute',social:'Contributi previdenziali',ires:'IRES',irap:'IRAP',other:'Altra imposta'}[x.type]||x.type))}</div><div class="invoice-meta">${safe(x.note||'Versamento')}</div><div class="invoice-actions"><button data-del-tax="${x.id}">Elimina</button></div></article>`).join('');$('taxPaymentEmpty').classList.toggle('hidden',list.length>0); document.querySelectorAll('[data-del-tax]').forEach(b=>b.onclick=()=>{if(confirm('Eliminare questo versamento?')){taxPayments=taxPayments.filter(x=>x.id!==b.dataset.delTax);persist();renderTax();renderDashboard()}})}
+function saveTaxPayment(){const amount=num($('taxPaymentAmount').value); if(amount<=0){alert('Inserisci un importo maggiore di zero.');return}taxPayments.unshift({id:uid(),date:$('taxPaymentDate').value||today(),type:$('taxPaymentType').value,amount,note:$('taxPaymentNote').value.trim()});persist();$('taxPaymentAmount').value='';$('taxPaymentNote').value='';fillYears();renderTax();renderDashboard();alert('Versamento registrato.')}
 
-function renderMonthlyTable(extra=null){
-  const list=extra?[...selectedMovements(),extra]:selectedMovements();
-  const names=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
-  const data=Array.from({length:12},()=>({r:0,c:0}));
-  list.forEach(m=>{const month=Number(String(m.date||'').slice(5,7))-1;if(month<0||month>11)return;if(m.type==='income')data[month].r+=num(m.amount);if(m.type==='expense')data[month].c+=num(m.amount);});
-  $('monthlyTableBody').innerHTML=data.map((x,i)=>`<tr><td>${names[i]}</td><td>${fmt(x.r)}</td><td>${fmt(x.c)}</td><td>${fmt(x.r-x.c)}</td></tr>`).join('');
-}
+function loadSettings(){ $('settingIres').value=settings.iresRate;$('settingIrap').value=settings.irapRate;$('settingOpeningCash').value=settings.openingCash;$('settingOpeningVatCredit').value=settings.openingVatCredit;$('settingIresAdjustments').value=settings.iresAdjustments;$('settingIrapAdjustments').value=settings.irapAdjustments }
+function saveSettings(){settings={iresRate:num($('settingIres').value),irapRate:num($('settingIrap').value),openingCash:num($('settingOpeningCash').value),openingVatCredit:num($('settingOpeningVatCredit').value),iresAdjustments:num($('settingIresAdjustments').value),irapAdjustments:num($('settingIrapAdjustments').value)};persist();renderDashboard();renderTax();alert('Impostazioni salvate.')}
 
-function renderMovements(){
-  const filter=$('movementFilter').value,q=$('searchMovement').value.trim().toLowerCase();
-  const list=selectedMovements().filter(m=>(filter==='all'||m.type===filter)&&(!q||`${m.category} ${m.description} ${TYPE_LABELS[m.type]||''}`.toLowerCase().includes(q))).sort((a,b)=>b.date.localeCompare(a.date)||String(b.id).localeCompare(String(a.id)));
-  $('movementList').innerHTML='';$('emptyState').style.display=list.length?'none':'block';
-  for(const m of list){
-    const el=document.createElement('div');el.className=`invoice-item ${m.type}`;
-    const economic=isEconomicType(m.type),gross=economic?num(m.amount)+num(m.vat):num(m.amount),sign=isCashIn(m.type)?'+':'−';
-    const meta=economic?`Imponibile: ${fmt(m.amount)} · IVA ${m.vatRate}%: ${fmt(m.vat)}${m.type==='expense'?` · IVA detraibile ${m.vatDeductibility}% · Deducibilità IRES ${m.taxDeductibility}% · IRAP ${m.irapDeductibility}%`:''}`:`Movimento finanziario: ${fmt(m.amount)}`;
-    el.innerHTML=`<div class="invoice-top"><div><strong>${sign} ${fmt(gross)}</strong><div class="invoice-desc">${escapeHtml(TYPE_LABELS[m.type]||m.type)} · ${escapeHtml(m.category||'Senza categoria')} · ${escapeHtml(m.description||'Nessuna descrizione')}</div></div><span>${formatDate(m.date)}</span></div><div class="invoice-meta">${meta}</div><div class="invoice-actions"><button data-delete="${escapeHtml(m.id)}" type="button">Elimina</button></div>`;
-    $('movementList').appendChild(el);
-  }
-}
+function csvEscape(v){const s=String(v??'');return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
+function exportCSV(){const rows=[['TIPO','SOTTOTIPO','DATA','SOGGETTO','DOCUMENTO','CATEGORIA','DESCRIZIONE','IMPONIBILE/COSTO','IVA','IVA DETRAIBILE','RITENUTE','CONTRIBUTI','CASSA']]; incomes.forEach(x=>{const c=calcIncome(x);rows.push(['ENTRATA','Ricavo',x.date,x.customer,x.docNo,x.category,x.description,c.net,c.vat,0,0,0,c.cash])});expenses.forEach(x=>{const c=calcExpense(x);rows.push(['USCITA',expenseTypeLabel(x.type),x.date,x.supplier,x.docNo,x.category,x.description,c.economicCost,c.vat,c.vatDeduct,c.withholding,c.social,c.cash])});taxPayments.forEach(x=>rows.push(['VERSAMENTO',x.type,x.date,'','','',x.note,x.amount,0,0,0,0,x.amount])); const csv='\ufeff'+rows.map(r=>r.map(csvEscape).join(';')).join('\n');downloadBlob(csv,'gestione-srl.csv','text/csv;charset=utf-8')}
+function downloadBlob(data,name,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},100)}
+function exportBackup(){downloadBlob(JSON.stringify({version:2,exportedAt:new Date().toISOString(),incomes,expenses,taxPayments,settings},null,2),'backup-gestione-srl.json','application/json')}
+async function importBackup(file){try{const d=JSON.parse(await file.text());if(!Array.isArray(d.incomes)||!Array.isArray(d.expenses)||!Array.isArray(d.taxPayments))throw new Error();if(!confirm('Importare il backup sostituendo i dati attuali?'))return;incomes=d.incomes;expenses=d.expenses;taxPayments=d.taxPayments;settings=Object.assign({},DEFAULT_SETTINGS,d.settings||{});persist();loadSettings();fillYears();renderAll();alert('Backup importato.')}catch{alert('Backup non valido.')}}
+function renderAll(){renderDashboard();renderIncome();renderExpense();renderTax()}
 
-function syncMovementFields(){
-  const type=$('movementType').value,economic=isEconomicType(type),expense=type==='expense';
-  document.querySelectorAll('.economic-only').forEach(el=>el.style.display=economic?'':'none');
-  document.querySelectorAll('.expense-only').forEach(el=>el.style.display=expense?'':'none');
-  $('amountLabel').textContent=economic?'IMPONIBILE':'IMPORTO';
-  const hints={income:'Registra un ricavo: l’IVA confluisce nell’IVA a debito.',expense:'Registra un costo: imposta detraibilità IVA e deducibilità IRES/IRAP.',capital_in:'Entrata di cassa senza effetto su ricavi, IVA o imponibile fiscale.',capital_out:'Uscita di cassa senza deduzione fiscale automatica.',vat_payment:'Versamento IVA: riduce il debito IVA residuo e la cassa.',tax_payment:'Versamento IRES/IRAP: riduce le imposte residue e la cassa.',dividend_payment:'Pagamento dividendi: riduce la cassa senza incidere sul risultato economico corrente.'};
-  $('movementHint').textContent=hints[type]||'';
-}
+// Navigation
+$('dashboardTab').onclick=()=>setView('dashboard');$('incomeTab').onclick=()=>setView('income');$('expenseTab').onclick=()=>setView('expense');$('taxTab').onclick=()=>setView('tax');$('settingsTab').onclick=()=>setView('settings');
+$('dashYear').onchange=renderDashboard;$('dashMonth').onchange=renderDashboard;$('todayPeriodBtn').onclick=()=>{$('dashYear').value=String(curYear());$('dashMonth').value=String(new Date().getMonth()+1);renderDashboard()};
+['incomeAmount','incomeVatRate','incomePaid'].forEach(id=>$(id).addEventListener('input',incomePreview));$('saveIncomeBtn').onclick=saveIncome;$('incomeYearFilter').onchange=renderIncome;$('incomeSearch').oninput=renderIncome;$('clearIncomeBtn').onclick=()=>{if(confirm('Cancellare tutte le entrate registrate?')){incomes=[];persist();fillYears();renderAll()}};
+$('expenseType').onchange=syncExpenseType;['expenseAmount','expenseVatRate','expenseVatDeduct','expenseIresDeduct','expenseIrapDeduct','expensePensionRate','expenseWithholdingRate','expensePaid'].forEach(id=>$(id).addEventListener('input',expensePreview));['payrollGross','payrollNet','payrollIrpef','payrollEmployeeSocial','payrollEmployerSocial','payrollTfr','payrollOtherCost','payrollOtherDue','expensePaid'].forEach(id=>$(id).addEventListener('input',payrollPreview));$('saveExpenseBtn').onclick=saveExpense;$('expenseYearFilter').onchange=renderExpense;$('expenseSearch').oninput=renderExpense;$('clearExpenseBtn').onclick=()=>{if(confirm('Cancellare tutte le uscite registrate?')){expenses=[];persist();fillYears();renderAll()}};
+$('taxYear').onchange=renderTax;$('saveTaxPaymentBtn').onclick=saveTaxPayment;$('saveSettingsBtn').onclick=saveSettings;$('exportCsvBtn').onclick=exportCSV;$('exportBackupBtn').onclick=exportBackup;$('importBackupInput').onchange=e=>{const f=e.target.files?.[0];if(f)importBackup(f);e.target.value=''};
 
-function resetForm(){
-  $('amount').value='';$('category').value='';$('description').value='';$('movementDate').value=today();$('vatRate').value='22';$('vatDeductibility').value=100;$('taxDeductibility').value=100;$('irapDeductibility').value=100;syncMovementFields();renderSummary(false);
-}
-function loadSettings(){['iresRate','irapRate','dividendRate','shareCapital','legalReserveCurrent','openingCash','openingVatCredit','iresAdditions','iresReductions','irapAdjustment'].forEach(id=>{$(id).value=settings[id]??0;});}
-function setView(name){['dashboard','movements','settings'].forEach(v=>{$(`${v}View`).classList.toggle('active',v===name);$(`${v}Tab`).classList.toggle('active',v===name);});if(name==='movements')renderMovements();if(name==='dashboard')renderSummary(false);}
-
-function exportCSV(){
-  const rows=[['Data','Tipo','Categoria','Descrizione','Imponibile/Importo','IVA %','IVA','IVA detraibile %','Deducibilita IRES %','Deducibilita IRAP %']];
-  selectedMovements().sort((a,b)=>a.date.localeCompare(b.date)).forEach(m=>rows.push([m.date,TYPE_LABELS[m.type]||m.type,m.category,m.description,m.amount,m.vatRate,m.vat,m.vatDeductibility,m.taxDeductibility,m.irapDeductibility]));
-  const csv=rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\n');downloadBlob(`srl-movimenti-${selectedYear()}.csv`,new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
-}
-function exportBackup(){const payload={version:2,exportedAt:new Date().toISOString(),movements,settings};downloadBlob(`srl-backup-${today()}.json`,new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));}
-function downloadBlob(filename,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},0);}
-
-$('saveMovementBtn').addEventListener('click',()=>{const m=movementFromForm();if(m.amount<=0){alert('Inserisci un importo maggiore di zero.');return;}movements.push(m);saveMovements();populateYears();$('periodYear').value=String(Number(m.date.slice(0,4))||currentYear());resetForm();renderMovements();alert('Movimento registrato.');});
-$('clearAllBtn').addEventListener('click',()=>{if(confirm(`Vuoi cancellare tutti i movimenti del ${selectedYear()}?`)){movements=movements.filter(m=>!inSelectedYear(m));saveMovements();populateYears();renderMovements();renderSummary(false);}});
-$('movementList').addEventListener('click',e=>{const id=e.target.dataset.delete;if(id&&confirm('Eliminare questo movimento?')){movements=movements.filter(m=>String(m.id)!==String(id));saveMovements();populateYears();renderMovements();renderSummary(false);}});
-$('saveSettingsBtn').addEventListener('click',()=>{settings={iresRate:clamp($('iresRate').value,0,100),irapRate:clamp($('irapRate').value,0,100),dividendRate:clamp($('dividendRate').value,0,100),shareCapital:Math.max(0,num($('shareCapital').value)),legalReserveCurrent:Math.max(0,num($('legalReserveCurrent').value)),openingCash:num($('openingCash').value),openingVatCredit:Math.max(0,num($('openingVatCredit').value)),iresAdditions:Math.max(0,num($('iresAdditions').value)),iresReductions:Math.max(0,num($('iresReductions').value)),irapAdjustment:num($('irapAdjustment').value)};saveSettings();renderSummary(false);alert('Impostazioni salvate.');});
-['amount','vatRate','vatDeductibility','taxDeductibility','irapDeductibility','movementType','movementDate'].forEach(id=>$(id).addEventListener('input',()=>{syncMovementFields();renderSummary(true);}));
-$('distributionPercent').addEventListener('input',()=>renderDistribution(summarize()));
-$('movementFilter').addEventListener('change',renderMovements);$('searchMovement').addEventListener('input',renderMovements);
-$('periodYear').addEventListener('change',()=>{renderSummary(false);renderMovements();});
-$('goCurrentYearBtn').addEventListener('click',()=>{$('periodYear').value=String(currentYear());renderSummary(false);renderMovements();});
-$('dashboardTab').addEventListener('click',()=>setView('dashboard'));$('movementsTab').addEventListener('click',()=>setView('movements'));$('settingsTab').addEventListener('click',()=>setView('settings'));
-$('exportCsvBtn').addEventListener('click',exportCSV);$('exportBackupBtn').addEventListener('click',exportBackup);
-$('importBackupInput').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!Array.isArray(data.movements)||typeof data.settings!=='object')throw new Error();if(!confirm('Importare il backup sostituendo i dati attuali?'))return;movements=data.movements;settings=Object.assign(settings,data.settings);saveMovements();saveSettings();loadSettings();populateYears();renderSummary(false);renderMovements();alert('Backup importato.');}catch{alert('File di backup non valido.');}finally{e.target.value='';}});
-
-$('movementDate').value=today();loadSettings();populateYears();syncMovementFields();renderSummary(false);renderMovements();
-if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
+$('incomeDate').value=today();$('expenseDate').value=today();$('taxPaymentDate').value=today();fillMonths();fillYears();loadSettings();syncExpenseType();incomePreview();renderAll();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
