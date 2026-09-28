@@ -10,3 +10,50 @@ html{background:#eef2f7}body{margin:0;background:#eef2f7;font-family:-apple-syst
 @media(max-width:600px){.topbar h1{font-size:18px}.view{padding:13px}.period-bar{align-items:stretch;flex-direction:column}.small-btn{width:100%}.field-row{flex-direction:column;align-items:stretch}.three-preview{grid-template-columns:1fr}.cards-grid{gap:9px}.calc-card{min-height:157px;padding:13px 9px}.calc-card h3{font-size:14px}.calc-card strong{font-size:20px}.grand-total{grid-template-columns:1fr}.settings-row{align-items:flex-start}.percent-input.small,.money-input.small{width:125px;flex:0 0 125px}.filter-row{grid-template-columns:1fr}.button-grid{grid-template-columns:1fr}.nav-btn{font-size:10px;padding:13px 2px}.totals div{align-items:flex-start}.totals strong{font-size:15px;max-width:45%}}
 
 .auto-note{display:block;margin-top:6px;font-size:11px;color:var(--muted);line-height:1.35}
+
+/* V5 — Netto pagato in evidenza */
+.payroll-net-primary{
+  margin:14px 0 16px;
+  padding:18px;
+  background:#fff8d8;
+  border:2px solid var(--yellow-border);
+  border-radius:16px;
+}
+.payroll-net-primary>label{
+  display:block;
+  margin-bottom:8px;
+  color:var(--navy);
+  font-size:16px;
+  font-weight:900;
+  letter-spacing:.02em;
+}
+.payroll-net-input{
+  border:2px solid var(--navy);
+  border-radius:14px;
+  min-height:66px;
+  background:#fff;
+}
+.payroll-net-input span{
+  font-size:30px;
+  padding-left:14px;
+}
+.payroll-net-input input{
+  font-size:34px!important;
+  line-height:1;
+  font-weight:900;
+  color:var(--navy);
+  padding:12px 14px!important;
+}
+.payroll-net-primary small{
+  display:block;
+  margin-top:8px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.35;
+}
+@media(max-width:600px){
+  .payroll-net-primary{padding:14px}
+  .payroll-net-input{min-height:60px}
+  .payroll-net-input span{font-size:26px}
+  .payroll-net-input input{font-size:30px!important}
+}

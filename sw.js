@@ -1,4 +1,4 @@
-const CACHE='gestione-srl-v5';
+const CACHE='gestione-srl-v5-netto-evidenza';
 const ASSETS=['./','./index.html','./styles.css?v=4','./app.js?v=4','./manifest.json','./icon.svg'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

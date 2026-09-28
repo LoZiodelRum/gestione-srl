@@ -8,7 +8,7 @@
   <title>Gestione SRL</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 </head>
 <body>
 <main class="app-shell">
@@ -213,9 +213,13 @@
         <p class="micro-note">Per l’amministratore l’app calcola automaticamente Gestione Separata, quota trattenuta, quota azienda, stima IRPEF progressiva, addizionali, netto e debiti da versare. Il TFR ordinario non si applica all’amministratore: l’eventuale TFM viene calcolato solo se imposti una percentuale.</p>
       </div>
 
+      <div class="payroll-net-primary">
+        <label for="payrollNet">NETTO PAGATO</label>
+        <div class="money-input payroll-net-input"><span>€</span><input id="payrollNet" inputmode="decimal" placeholder="0,00" /></div>
+        <small>Inserisci qui l’importo netto che vuoi effettivamente pagare. Tutti gli altri valori vengono calcolati automaticamente.</small>
+      </div>
       <div class="field-row">
         <div class="field grow"><label for="payrollGross">RETRIBUZIONE / COMPENSO LORDO</label><div class="money-input"><span>€</span><input id="payrollGross" inputmode="decimal" placeholder="0,00" /></div></div>
-        <div class="field grow"><label for="payrollNet">NETTO PAGATO</label><div class="money-input"><span>€</span><input id="payrollNet" inputmode="decimal" placeholder="0,00" /></div></div>
       </div>
       <div class="field-row">
         <div class="field grow"><label for="payrollIrpef">IRPEF + ADDIZIONALI TRATTENUTE</label><div class="money-input"><span>€</span><input id="payrollIrpef" inputmode="decimal" placeholder="0,00" /></div></div>
@@ -335,6 +339,6 @@
     <button id="settingsTab" class="nav-btn" type="button">IMPOST.</button>
   </nav>
 </main>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>
