@@ -155,7 +155,46 @@
     </section>
 
     <section id="payrollExpenseForm" class="input-card stacked-card hidden">
-      <p class="form-intro">Gli stipendi non hanno IVA. Registra separatamente costo economico, netto pagato e somme da versare per ritenute e contributi.</p>
+      <p id="payrollIntro" class="form-intro">Gli stipendi non hanno IVA. Registra separatamente costo economico, netto pagato e somme da versare per ritenute e contributi.</p>
+
+      <div id="administratorAutoBox" class="conditional-box hidden">
+        <div class="field-row">
+          <div class="field grow">
+            <label for="adminContributionProfile">PROFILO PREVIDENZIALE AMMINISTRATORE</label>
+            <select id="adminContributionProfile">
+              <option value="33.72">Nessuna altra previdenza obbligatoria — Gestione Separata 33,72%</option>
+              <option value="24">Pensionato / altra previdenza obbligatoria — Gestione Separata 24%</option>
+              <option value="custom">Aliquota personalizzata</option>
+            </select>
+          </div>
+          <div class="field grow">
+            <label for="adminSocialRate">ALIQUOTA CONTRIBUTIVA TOTALE</label>
+            <div class="percent-input"><input id="adminSocialRate" type="number" min="0" max="100" value="33.72" step="0.01" /><span>%</span></div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field grow">
+            <label for="adminFrequency">TIPO DI COMPENSO</label>
+            <select id="adminFrequency"><option value="monthly">Mensile ricorrente</option><option value="oneoff">Una tantum / importo annuale</option></select>
+          </div>
+          <div class="field grow">
+            <label for="adminAdditionalRate">ADDIZIONALI IRPEF STIMATE</label>
+            <div class="percent-input"><input id="adminAdditionalRate" type="number" min="0" max="10" value="2.00" step="0.01" /><span>%</span></div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field grow">
+            <label for="adminTfmRate">TFM / ACCANTONAMENTO AMMINISTRATORE</label>
+            <div class="percent-input"><input id="adminTfmRate" type="number" min="0" max="100" value="0" step="0.01" /><span>%</span></div>
+          </div>
+          <div class="field grow">
+            <label>PROIEZIONE REDDITO ANNUO USATA PER IRPEF</label>
+            <div class="readout" id="adminAnnualProjection">€ 0,00</div>
+          </div>
+        </div>
+        <p class="micro-note">Per l’amministratore l’app calcola automaticamente Gestione Separata, quota trattenuta, quota azienda, stima IRPEF progressiva, addizionali, netto e debiti da versare. Il TFR ordinario non si applica all’amministratore: l’eventuale TFM viene calcolato solo se imposti una percentuale.</p>
+      </div>
+
       <div class="field-row">
         <div class="field grow"><label for="payrollGross">RETRIBUZIONE / COMPENSO LORDO</label><div class="money-input"><span>€</span><input id="payrollGross" inputmode="decimal" placeholder="0,00" /></div></div>
         <div class="field grow"><label for="payrollNet">NETTO PAGATO</label><div class="money-input"><span>€</span><input id="payrollNet" inputmode="decimal" placeholder="0,00" /></div></div>
@@ -166,7 +205,7 @@
       </div>
       <div class="field-row">
         <div class="field grow"><label for="payrollEmployerSocial">CONTRIBUTI A CARICO AZIENDA</label><div class="money-input"><span>€</span><input id="payrollEmployerSocial" inputmode="decimal" placeholder="0,00" /></div></div>
-        <div class="field grow"><label for="payrollTfr">TFR / ACCANTONAMENTO</label><div class="money-input"><span>€</span><input id="payrollTfr" inputmode="decimal" placeholder="0,00" /></div></div>
+        <div class="field grow"><label id="payrollTfrLabel" for="payrollTfr">TFR / ACCANTONAMENTO</label><div class="money-input"><span>€</span><input id="payrollTfr" inputmode="decimal" placeholder="0,00" /></div></div>
       </div>
       <div class="field-row">
         <div class="field grow"><label for="payrollOtherCost">ALTRI ONERI AZIENDALI</label><div class="money-input"><span>€</span><input id="payrollOtherCost" inputmode="decimal" placeholder="0,00" /></div></div>
