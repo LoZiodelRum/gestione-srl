@@ -8,7 +8,7 @@
   <title>Gestione SRL</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=4" />
 </head>
 <body>
 <main class="app-shell">
@@ -85,7 +85,7 @@
         <div class="field grow"><label for="incomeInvoiceNo">N. FATTURA / DOCUMENTO</label><input id="incomeInvoiceNo" type="text" placeholder="Es. 12/2026" /></div>
       </div>
       <div class="field-row">
-        <div class="field grow"><label for="incomeCategory">CATEGORIA</label><input id="incomeCategory" list="incomeCategories" placeholder="Es. Servizi, abbonamenti, eventi" /><datalist id="incomeCategories"><option>Servizi</option><option>Vendite</option><option>Abbonamenti</option><option>Eventi</option><option>Pubblicità / Sponsor</option><option>Altro ricavo</option></datalist></div>
+        <div class="field grow"><label for="incomeCategory">CATEGORIA</label><select id="incomeCategory"><option value="Servizi">Servizi</option><option value="Vendite">Vendite</option><option value="Abbonamenti">Abbonamenti</option><option value="Eventi">Eventi</option><option value="Pubblicità / Sponsor">Pubblicità / Sponsor</option><option value="Altro ricavo">Altro ricavo</option></select><small class="auto-note">La categoria imposta automaticamente l'IVA predefinita; puoi sempre modificarla.</small></div>
         <div class="field grow"><label for="incomeDate">DATA</label><input id="incomeDate" type="date" /></div>
       </div>
       <div class="field-row">
@@ -140,6 +140,7 @@
         <div class="field grow"><label for="expenseIresDeduct">DEDUCIBILITÀ IRES</label><div class="percent-input"><input id="expenseIresDeduct" type="number" min="0" max="100" value="100" /><span>%</span></div></div>
         <div class="field grow"><label for="expenseIrapDeduct">DEDUCIBILITÀ IRAP</label><div class="percent-input"><input id="expenseIrapDeduct" type="number" min="0" max="100" value="100" /><span>%</span></div></div>
       </div>
+      <p class="micro-note">IVA, IVA detraibile e deducibilità vengono precompilate in base al tipo di uscita. Sono valori gestionali predefiniti e restano modificabili prima della registrazione.</p>
       <div id="professionalExtras" class="conditional-box hidden">
         <div class="field-row">
           <div class="field grow"><label for="expensePensionRate">RIVALSA / CONTRIBUTO PREVIDENZIALE</label><div class="percent-input"><input id="expensePensionRate" type="number" min="0" max="100" value="0" step="0.01" /><span>%</span></div></div>
@@ -156,6 +157,23 @@
 
     <section id="payrollExpenseForm" class="input-card stacked-card hidden">
       <p id="payrollIntro" class="form-intro">Gli stipendi non hanno IVA. Registra separatamente costo economico, netto pagato e somme da versare per ritenute e contributi.</p>
+
+      <div id="salaryAutoBox" class="conditional-box hidden">
+        <strong>CALCOLO AUTOMATICO STIPENDIO — STIMA GESTIONALE</strong>
+        <div class="field-row">
+          <div class="field grow"><label for="salaryFrequency">PERIODICITÀ</label><select id="salaryFrequency"><option value="monthly">Mensile ricorrente</option><option value="oneoff">Una tantum / importo annuale</option></select></div>
+          <div class="field grow"><label for="salaryEmployeeRate">CONTRIBUTI LAVORATORE</label><div class="percent-input"><input id="salaryEmployeeRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
+        </div>
+        <div class="field-row">
+          <div class="field grow"><label for="salaryEmployerRate">CONTRIBUTI AZIENDA</label><div class="percent-input"><input id="salaryEmployerRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
+          <div class="field grow"><label for="salaryTfrRate">TFR / ACCANTONAMENTO</label><div class="percent-input"><input id="salaryTfrRate" type="number" min="0" max="100" step="0.0001" /><span>%</span></div></div>
+        </div>
+        <div class="field-row">
+          <div class="field grow"><label for="salaryAdditionalRate">ADDIZIONALI IRPEF STIMATE</label><div class="percent-input"><input id="salaryAdditionalRate" type="number" min="0" max="10" step="0.01" /><span>%</span></div></div>
+          <div class="field grow"><label>PROIEZIONE IMPONIBILE ANNUO</label><div class="readout" id="salaryAnnualProjection">€ 0,00</div></div>
+        </div>
+        <p class="micro-note">Inserisci solo il lordo: l'app stima automaticamente contributi, IRPEF, addizionali, netto, costo aziendale e TFR. Le aliquote sono modificabili perché il cedolino reale dipende da CCNL, qualifica, agevolazioni, detrazioni e situazione personale.</p>
+      </div>
 
       <div id="administratorAutoBox" class="conditional-box hidden">
         <div class="field-row">
@@ -277,7 +295,7 @@
       <div class="section-title"><h2>REGISTRA VERSAMENTO</h2><span>F24 / pagamento</span></div>
       <div class="field-row">
         <div class="field grow"><label for="taxPaymentType">TIPO</label><select id="taxPaymentType"><option value="vat">IVA</option><option value="withholding">Ritenute</option><option value="social">Contributi previdenziali</option><option value="ires">IRES</option><option value="irap">IRAP</option><option value="other">Altra imposta / tributo</option></select></div>
-        <div class="field grow"><label for="taxPaymentAmount">IMPORTO</label><div class="money-input"><span>€</span><input id="taxPaymentAmount" inputmode="decimal" placeholder="0,00" /></div></div>
+        <div class="field grow"><label for="taxPaymentAmount">IMPORTO</label><div class="money-input"><span>€</span><input id="taxPaymentAmount" inputmode="decimal" placeholder="0,00" /></div><small class="auto-note">Si compila automaticamente con il debito residuo del tipo selezionato.</small></div>
       </div>
       <div class="field-row"><div class="field grow"><label for="taxPaymentDate">DATA</label><input id="taxPaymentDate" type="date" /></div><div class="field grow"><label for="taxPaymentNote">NOTE</label><input id="taxPaymentNote" type="text" placeholder="Es. F24 IVA agosto" /></div></div>
       <button id="saveTaxPaymentBtn" class="primary-btn" type="button">REGISTRA VERSAMENTO</button>
@@ -295,6 +313,12 @@
       <div class="settings-row"><div><strong>Credito IVA iniziale</strong><small>Credito riportato da periodi precedenti.</small></div><div class="money-input small"><span>€</span><input id="settingOpeningVatCredit" inputmode="decimal" /></div></div>
       <div class="settings-row"><div><strong>Variazioni fiscali IRES</strong><small>+ aumenta l'imponibile, − lo riduce.</small></div><div class="money-input small"><span>€</span><input id="settingIresAdjustments" inputmode="decimal" /></div></div>
       <div class="settings-row"><div><strong>Rettifica base IRAP</strong><small>Rettifica manuale per il commercialista.</small></div><div class="money-input small"><span>€</span><input id="settingIrapAdjustments" inputmode="decimal" /></div></div>
+      <div class="settings-row"><div><strong>Contributi dipendente - quota lavoratore</strong><small>Predefinito per il calcolo automatico dello stipendio; personalizzabile.</small></div><div class="percent-input small"><input id="settingSalaryEmployeeRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>Contributi dipendente - quota azienda</strong><small>Stima gestionale personalizzabile in base al CCNL/inquadramento.</small></div><div class="percent-input small"><input id="settingSalaryEmployerRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>TFR predefinito</strong><small>Quota annua teorica retribuzione/13,5, espressa in percentuale.</small></div><div class="percent-input small"><input id="settingSalaryTfrRate" type="number" min="0" max="100" step="0.0001" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>Addizionali IRPEF stimate paghe</strong><small>Valore gestionale per la precompilazione; può essere corretto.</small></div><div class="percent-input small"><input id="settingSalaryAdditionalRate" type="number" min="0" max="10" step="0.01" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>Rivalsa professionisti predefinita</strong><small>Usata quando selezioni “Professionista”.</small></div><div class="percent-input small"><input id="settingProfessionalPensionRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>Ritenuta professionisti predefinita</strong><small>Usata quando selezioni “Professionista”.</small></div><div class="percent-input small"><input id="settingProfessionalWithholdingRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
       <button id="saveSettingsBtn" class="primary-btn" type="button">SALVA IMPOSTAZIONI</button>
     </section>
 
@@ -311,6 +335,6 @@
     <button id="settingsTab" class="nav-btn" type="button">IMPOST.</button>
   </nav>
 </main>
-<script src="app.js"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

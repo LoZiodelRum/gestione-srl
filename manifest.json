@@ -1,5 +1,5 @@
 {
-  "name": "Gestione SRL",
+  "name": "Gestione SRL Automatica",
   "short_name": "Gestione SRL",
   "start_url": "./",
   "scope": "./",
@@ -7,5 +7,12 @@
   "background_color": "#ffffff",
   "theme_color": "#173b6f",
   "description": "Entrate, uscite, tasse, IVA e liquidità per SRL.",
-  "icons": [{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }
