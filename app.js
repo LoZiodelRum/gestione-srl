@@ -6,7 +6,53 @@ let incomes = load(STORE.incomes, []), expenses = load(STORE.expenses, []), taxP
 
 function load(k,f){try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}}
 function persist(){localStorage.setItem(STORE.incomes,JSON.stringify(incomes));localStorage.setItem(STORE.expenses,JSON.stringify(expenses));localStorage.setItem(STORE.taxPayments,JSON.stringify(taxPayments));localStorage.setItem(STORE.settings,JSON.stringify(settings));}
-function num(v){if(typeof v==='number')return Number.isFinite(v)?v:0; if(v==null)return 0; const s=String(v).trim().replace(/\s/g,'').replace(/\./g,'').replace(',','.'); const n=Number(s); return Number.isFinite(n)?n:0}
+function num(v){
+  if(typeof v==='number') return Number.isFinite(v)?v:0;
+  if(v==null) return 0;
+
+  let s=String(v)
+    .trim()
+    .replace(/\s/g,'')
+    .replace(/[€%]/g,'');
+
+  if(!s) return 0;
+
+  const commas=(s.match(/,/g)||[]).length;
+  const dots=(s.match(/\./g)||[]).length;
+  const lastComma=s.lastIndexOf(',');
+  const lastDot=s.lastIndexOf('.');
+
+  // Formato italiano completo: 1.234,56
+  if(commas>0 && dots>0 && lastComma>lastDot){
+    s=s.replace(/\./g,'').replace(',','.');
+  }
+  // Formato internazionale completo: 1,234.56
+  else if(commas>0 && dots>0 && lastDot>lastComma){
+    s=s.replace(/,/g,'');
+  }
+  // Solo virgola: 33,72 -> 33.72 oppure 5.000,00 già gestito sopra
+  else if(commas===1 && dots===0){
+    s=s.replace(',','.');
+  }
+  // Più virgole senza punti: le consideriamo separatori delle migliaia
+  else if(commas>1 && dots===0){
+    s=s.replace(/,/g,'');
+  }
+  // Più punti senza virgole: 1.234.567 -> 1234567
+  else if(dots>1 && commas===0){
+    s=s.replace(/\./g,'');
+  }
+  // Un solo punto: normalmente è decimale (33.72, 3.9, 7.4074).
+  // Se ci sono esattamente 3 cifre dopo il punto, lo trattiamo come migliaia (5.000 -> 5000).
+  else if(dots===1 && commas===0){
+    const [a,b]=s.split('.');
+    if(/^[-+]?\d{1,3}$/.test(a) && /^\d{3}$/.test(b)) s=a+b;
+  }
+
+  s=s.replace(/[^0-9+\-.]/g,'');
+  const n=Number(s);
+  return Number.isFinite(n)?n:0;
+}
 function clampPct(v){return Math.min(100,Math.max(0,num(v)))}
 function money(v){return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(Number(v)||0)}
 function today(){return new Date().toISOString().slice(0,10)}
@@ -107,21 +153,51 @@ function syncExpenseType(){
   $('standardExpenseForm').classList.toggle('hidden',payroll);$('payrollExpenseForm').classList.toggle('hidden',!payroll);$('professionalExtras').classList.toggle('hidden',t!=='professional');$('administratorAutoBox').classList.toggle('hidden',!admin);$('salaryAutoBox').classList.toggle('hidden',!salary);
   if(!payroll)applyExpensePreset();
   const cats={supplier:'Fornitori',professional:'Consulenze professionali',salary:'Personale dipendente',administrator:'Compenso amministratore',rent:'Affitto / locazione',asset:'Bene strumentale',bank:'Banche / commissioni',insurance:'Assicurazioni',taxcost:'Imposte e tributi',reimbursement:'Rimborsi spese',other:'Altro costo'}; $('expenseCategory').value=cats[t]||'';
-  if(payroll){$('payrollIntro').textContent=admin?'Il compenso amministratore non ha IVA. Inserisci il lordo: contributi, ritenute fiscali stimate, netto e debiti da versare vengono compilati automaticamente in base al profilo scelto.':'Lo stipendio non ha IVA. Inserisci il lordo: l’app compila automaticamente una stima di contributi, IRPEF, netto, TFR e costo aziendale; i parametri restano modificabili.';$('payrollTfrLabel').textContent=admin?'TFM / ACCANTONAMENTO':'TFR / ACCANTONAMENTO';$('expensePaymentMethod').value='Bonifico';}
-  ['payrollNet','payrollIrpef','payrollEmployeeSocial','payrollEmployerSocial','payrollTfr'].forEach(id=>$(id).readOnly=payroll);
+  if(payroll){$('payrollIntro').textContent=admin?'Il compenso amministratore non ha IVA. Inserisci il NETTO PAGATO: l’app ricostruisce automaticamente lordo stimato, contributi, ritenute fiscali, costo aziendale e debiti da versare in base al profilo scelto.':'Lo stipendio non ha IVA. Inserisci il lordo: l’app compila automaticamente una stima di contributi, IRPEF, netto, TFR e costo aziendale; i parametri restano modificabili.';$('payrollTfrLabel').textContent=admin?'TFM / ACCANTONAMENTO':'TFR / ACCANTONAMENTO';$('expensePaymentMethod').value='Bonifico';}
+  if(admin){$('payrollNet').readOnly=false;$('payrollGross').readOnly=true;}else if(salary){$('payrollGross').readOnly=false;$('payrollNet').readOnly=true;}
+  ['payrollIrpef','payrollEmployeeSocial','payrollEmployerSocial','payrollTfr'].forEach(id=>$(id).readOnly=payroll);
   if(admin)autoFillAdministrator(); else if(salary)syncSalaryDefaults();
   expensePreview(); payrollPreview();
 }
 function syncAdminContributionProfile(){const v=$('adminContributionProfile').value;if(v!=='custom')$('adminSocialRate').value=v;$('adminSocialRate').readOnly=v!=='custom';autoFillAdministrator()}
+function adminCalcFromGross(gross){
+  gross=Math.max(0,num(gross));
+  const totalRate=clampPct($('adminSocialRate').value), addRate=clampPct($('adminAdditionalRate').value), tfmRate=clampPct($('adminTfmRate').value), freq=$('adminFrequency').value;
+  const totalSocial=gross*totalRate/100;
+  const employeeSocial=totalSocial/3;
+  const employerSocial=totalSocial*2/3;
+  const taxableCurrent=Math.max(0,gross-employeeSocial);
+  const annualTaxable=freq==='monthly'?taxableCurrent*12:taxableCurrent;
+  const annualIrpef=irpefGrossAnnual(annualTaxable);
+  const currentIrpef=freq==='monthly'?annualIrpef/12:annualIrpef;
+  const additions=taxableCurrent*addRate/100;
+  const withholding=Math.max(0,currentIrpef+additions);
+  const net=Math.max(0,gross-employeeSocial-withholding);
+  const tfm=gross*tfmRate/100;
+  return {gross,totalSocial,employeeSocial,employerSocial,taxableCurrent,annualTaxable,withholding,net,tfm};
+}
+function solveAdminGrossFromNet(targetNet){
+  targetNet=Math.max(0,num(targetNet));
+  if(targetNet<=0)return adminCalcFromGross(0);
+  let low=targetNet, high=Math.max(targetNet*2,1000);
+  for(let i=0;i<40 && adminCalcFromGross(high).net<targetNet;i++) high*=1.5;
+  for(let i=0;i<80;i++){
+    const mid=(low+high)/2, c=adminCalcFromGross(mid);
+    if(c.net<targetNet) low=mid; else high=mid;
+  }
+  return adminCalcFromGross((low+high)/2);
+}
 function autoFillAdministrator(){
   if($('expenseType').value!=='administrator')return;
-  const gross=num($('payrollGross').value), totalRate=clampPct($('adminSocialRate').value), addRate=clampPct($('adminAdditionalRate').value), tfmRate=clampPct($('adminTfmRate').value), freq=$('adminFrequency').value;
-  const totalSocial=gross*totalRate/100, employeeSocial=totalSocial/3, employerSocial=totalSocial*2/3;
-  const taxableCurrent=Math.max(0,gross-employeeSocial), annualTaxable=freq==='monthly'?taxableCurrent*12:taxableCurrent;
-  const annualIrpef=irpefGrossAnnual(annualTaxable), currentIrpef=freq==='monthly'?annualIrpef/12:annualIrpef;
-  const additions=taxableCurrent*addRate/100, withholding=Math.max(0,currentIrpef+additions), net=Math.max(0,gross-employeeSocial-withholding), tfm=gross*tfmRate/100;
-  setMoneyInput('payrollEmployeeSocial',employeeSocial);setMoneyInput('payrollEmployerSocial',employerSocial);setMoneyInput('payrollIrpef',withholding);setMoneyInput('payrollNet',net);setMoneyInput('payrollTfr',tfm);
-  $('adminAnnualProjection').textContent=money(annualTaxable);payrollPreview();
+  const targetNet=num($('payrollNet').value);
+  const c=solveAdminGrossFromNet(targetNet);
+  setMoneyInput('payrollGross',c.gross);
+  setMoneyInput('payrollEmployeeSocial',c.employeeSocial);
+  setMoneyInput('payrollEmployerSocial',c.employerSocial);
+  setMoneyInput('payrollIrpef',c.withholding);
+  setMoneyInput('payrollTfr',c.tfm);
+  $('adminAnnualProjection').textContent=money(c.annualTaxable);
+  payrollPreview();
 }
 function syncSalaryDefaults(){
   $('salaryEmployeeRate').value=num(settings.salaryEmployeeRate);$('salaryEmployerRate').value=num(settings.salaryEmployerRate);$('salaryTfrRate').value=num(settings.salaryTfrRate);$('salaryAdditionalRate').value=num(settings.salaryAdditionalRate);autoFillSalary();
@@ -135,7 +211,7 @@ function autoFillSalary(){
 }
 function expensePreview(){const e={type:$('expenseType').value,amount:$('expenseAmount').value,vatRate:$('expenseVatRate').value,vatDeduct:$('expenseVatDeduct').value,iresDeduct:$('expenseIresDeduct').value,irapDeduct:$('expenseIrapDeduct').value,pensionRate:$('expensePensionRate').value,withholdingRate:$('expenseWithholdingRate').value,paid:$('expensePaid').value}; const c=calcExpense(e);$('expensePreviewVat').textContent=money(c.vat);$('expensePreviewWithholding').textContent=money(c.withholding);$('expensePreviewCash').textContent=money(c.cash)}
 function payrollPreview(){const e={type:$('expenseType').value,payrollGross:$('payrollGross').value,payrollNet:$('payrollNet').value,payrollIrpef:$('payrollIrpef').value,payrollEmployeeSocial:$('payrollEmployeeSocial').value,payrollEmployerSocial:$('payrollEmployerSocial').value,payrollTfr:$('payrollTfr').value,payrollOtherCost:$('payrollOtherCost').value,payrollOtherDue:$('payrollOtherDue').value,paid:$('expensePaid').value};const c=calcExpense(e);$('payrollPreviewCost').textContent=money(c.economicCost);$('payrollPreviewCash').textContent=money(c.cash);$('payrollPreviewDue').textContent=money(c.withholding+c.social)}
-function saveExpense(){const t=$('expenseType').value,payroll=t==='salary'||t==='administrator'; if(payroll&&num($('payrollGross').value)<=0){alert('Inserisci la retribuzione o compenso lordo.');return} if(!payroll&&num($('expenseAmount').value)<=0){alert('Inserisci un importo maggiore di zero.');return}
+function saveExpense(){const t=$('expenseType').value,payroll=t==='salary'||t==='administrator'; if(t==='administrator'&&num($('payrollNet').value)<=0){alert('Inserisci il compenso netto pagato.');return} if(t==='salary'&&num($('payrollGross').value)<=0){alert('Inserisci la retribuzione lorda.');return} if(!payroll&&num($('expenseAmount').value)<=0){alert('Inserisci un importo maggiore di zero.');return}
   const e={id:uid(),type:t,date:$('expenseDate').value||today(),supplier:$('expenseSupplier').value.trim(),docNo:$('expenseDocNo').value.trim(),category:$('expenseCategory').value.trim(),description:$('expenseDescription').value.trim(),paid:$('expensePaid').value,paymentMethod:$('expensePaymentMethod').value,amount:num($('expenseAmount').value),vatRate:num($('expenseVatRate').value),vatDeduct:clampPct($('expenseVatDeduct').value),iresDeduct:clampPct($('expenseIresDeduct').value),irapDeduct:clampPct($('expenseIrapDeduct').value),pensionRate:num($('expensePensionRate').value),withholdingRate:num($('expenseWithholdingRate').value),payrollGross:num($('payrollGross').value),payrollNet:num($('payrollNet').value),payrollIrpef:num($('payrollIrpef').value),payrollEmployeeSocial:num($('payrollEmployeeSocial').value),payrollEmployerSocial:num($('payrollEmployerSocial').value),payrollTfr:num($('payrollTfr').value),payrollOtherCost:num($('payrollOtherCost').value),payrollOtherDue:num($('payrollOtherDue').value),adminContributionProfile:$('adminContributionProfile').value,adminSocialRate:num($('adminSocialRate').value),adminFrequency:$('adminFrequency').value,adminAdditionalRate:num($('adminAdditionalRate').value),adminTfmRate:num($('adminTfmRate').value),salaryFrequency:$('salaryFrequency').value,salaryEmployeeRate:num($('salaryEmployeeRate').value),salaryEmployerRate:num($('salaryEmployerRate').value),salaryTfrRate:num($('salaryTfrRate').value),salaryAdditionalRate:num($('salaryAdditionalRate').value)};
   expenses.unshift(e);persist(); ['expenseAmount','payrollGross','payrollNet','payrollIrpef','payrollEmployeeSocial','payrollEmployerSocial','payrollTfr','payrollOtherCost','payrollOtherDue','expenseSupplier','expenseDocNo','expenseDescription'].forEach(id=>$(id).value='');expensePreview();payrollPreview();fillYears();renderExpense();renderDashboard();renderTax();alert('Uscita registrata.')}
 function expenseTypeLabel(t){return {supplier:'Fattura fornitore',professional:'Professionista',salary:'Stipendio',administrator:'Compenso amministratore',rent:'Affitto',asset:'Bene strumentale',bank:'Banca/commissioni',insurance:'Assicurazione',taxcost:'Imposta/tributo',reimbursement:'Rimborso spese',other:'Altro costo'}[t]||t}
@@ -164,7 +240,7 @@ function renderAll(){renderDashboard();renderIncome();renderExpense();renderTax(
 $('dashboardTab').onclick=()=>setView('dashboard');$('incomeTab').onclick=()=>setView('income');$('expenseTab').onclick=()=>setView('expense');$('taxTab').onclick=()=>setView('tax');$('settingsTab').onclick=()=>setView('settings');
 $('dashYear').onchange=renderDashboard;$('dashMonth').onchange=renderDashboard;$('todayPeriodBtn').onclick=()=>{$('dashYear').value=String(curYear());$('dashMonth').value=String(new Date().getMonth()+1);renderDashboard()};
 ['incomeAmount','incomeVatRate','incomePaid'].forEach(id=>$(id).addEventListener('input',incomePreview));$('incomeCategory').onchange=autoIncomePreset;$('saveIncomeBtn').onclick=saveIncome;$('incomeYearFilter').onchange=renderIncome;$('incomeSearch').oninput=renderIncome;$('clearIncomeBtn').onclick=()=>{if(confirm('Cancellare tutte le entrate registrate?')){incomes=[];persist();fillYears();renderAll()}};
-$('expenseType').onchange=syncExpenseType;['expenseAmount','expenseVatRate','expenseVatDeduct','expenseIresDeduct','expenseIrapDeduct','expensePensionRate','expenseWithholdingRate','expensePaid'].forEach(id=>$(id).addEventListener('input',expensePreview));['payrollNet','payrollIrpef','payrollEmployeeSocial','payrollEmployerSocial','payrollTfr','payrollOtherCost','payrollOtherDue','expensePaid'].forEach(id=>$(id).addEventListener('input',payrollPreview));$('payrollGross').addEventListener('input',()=>{$('expenseType').value==='administrator'?autoFillAdministrator():$('expenseType').value==='salary'?autoFillSalary():payrollPreview()});$('adminContributionProfile').onchange=syncAdminContributionProfile;['adminSocialRate','adminAdditionalRate','adminTfmRate'].forEach(id=>$(id).addEventListener('input',autoFillAdministrator));$('adminFrequency').onchange=autoFillAdministrator;['salaryEmployeeRate','salaryEmployerRate','salaryTfrRate','salaryAdditionalRate'].forEach(id=>$(id).addEventListener('input',autoFillSalary));$('salaryFrequency').onchange=autoFillSalary;$('saveExpenseBtn').onclick=saveExpense;$('expenseYearFilter').onchange=renderExpense;$('expenseSearch').oninput=renderExpense;$('clearExpenseBtn').onclick=()=>{if(confirm('Cancellare tutte le uscite registrate?')){expenses=[];persist();fillYears();renderAll()}};
+$('expenseType').onchange=syncExpenseType;['expenseAmount','expenseVatRate','expenseVatDeduct','expenseIresDeduct','expenseIrapDeduct','expensePensionRate','expenseWithholdingRate','expensePaid'].forEach(id=>$(id).addEventListener('input',expensePreview));['payrollIrpef','payrollEmployeeSocial','payrollEmployerSocial','payrollTfr','payrollOtherCost','payrollOtherDue','expensePaid'].forEach(id=>$(id).addEventListener('input',payrollPreview));$('payrollNet').addEventListener('input',()=>{$('expenseType').value==='administrator'?autoFillAdministrator():payrollPreview()});$('payrollGross').addEventListener('input',()=>{$('expenseType').value==='salary'?autoFillSalary():payrollPreview()});$('adminContributionProfile').onchange=syncAdminContributionProfile;['adminSocialRate','adminAdditionalRate','adminTfmRate'].forEach(id=>$(id).addEventListener('input',autoFillAdministrator));$('adminFrequency').onchange=autoFillAdministrator;['salaryEmployeeRate','salaryEmployerRate','salaryTfrRate','salaryAdditionalRate'].forEach(id=>$(id).addEventListener('input',autoFillSalary));$('salaryFrequency').onchange=autoFillSalary;$('saveExpenseBtn').onclick=saveExpense;$('expenseYearFilter').onchange=renderExpense;$('expenseSearch').oninput=renderExpense;$('clearExpenseBtn').onclick=()=>{if(confirm('Cancellare tutte le uscite registrate?')){expenses=[];persist();fillYears();renderAll()}};
 $('taxYear').onchange=()=>{renderTax();autoFillTaxPayment()};$('taxPaymentType').onchange=autoFillTaxPayment;$('saveTaxPaymentBtn').onclick=saveTaxPayment;$('saveSettingsBtn').onclick=saveSettings;$('exportCsvBtn').onclick=exportCSV;$('exportBackupBtn').onclick=exportBackup;$('importBackupInput').onchange=e=>{const f=e.target.files?.[0];if(f)importBackup(f);e.target.value=''};
 
 $('incomeDate').value=today();$('expenseDate').value=today();$('taxPaymentDate').value=today();fillMonths();fillYears();loadSettings();syncExpenseType();autoIncomePreset();incomePreview();renderAll();autoFillTaxPayment();
