@@ -8,7 +8,7 @@
   <title>Gestione SRL</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css?v=8" />
+  <link rel="stylesheet" href="styles.css?v=9" />
 </head>
 <body>
 <main class="app-shell">
@@ -74,8 +74,9 @@
       <article class="calc-card accent preview-available"><h3>DISPONIBILE REALE DOPO QUESTA ENTRATA</h3><strong id="dashLivePrudentCash">€ 0,00</strong><p>Liquidità prevista dopo IVA, ritenute, contributi, IRES, IRAP e altri tributi ancora da versare.</p></article>
     </section>
 
-    <div class="section-title"><h2>ACCANTONAMENTI FISCALI</h2><span>maturato − versato</span></div>
+    <div class="section-title"><h2>IVA E ACCANTONAMENTI FISCALI</h2><span>maturato − versato</span></div>
     <section class="reserve-grid">
+      <article class="vat-deduct-card"><span>IVA detraibile accumulata</span><strong id="dashVatDeductible">€ 0,00</strong></article>
       <article><span>IVA da versare</span><strong id="dashVatBalance">€ 0,00</strong></article>
       <article><span>IRES accantonata</span><strong id="dashIresReserve">€ 0,00</strong></article>
       <article><span>IRAP accantonata</span><strong id="dashIrapReserve">€ 0,00</strong></article>
@@ -187,11 +188,14 @@
         <div class="field grow"><label for="expenseVatRate">IVA</label><select id="expenseVatRate"><option value="22">22%</option><option value="10">10%</option><option value="5">5%</option><option value="4">4%</option><option value="0">0% / esente / fuori campo</option></select></div>
       </div>
       <div class="field-row">
-        <div class="field grow"><label for="expenseVatDeduct">IVA DETRAIBILE</label><div class="percent-input"><input id="expenseVatDeduct" type="number" min="0" max="100" value="100" /><span>%</span></div></div>
+        <div class="field grow"><label for="expenseVatDeductible">IVA DETRAIBILE?</label><select id="expenseVatDeductible"><option value="yes">Sì</option><option value="no">No</option></select></div>
+        <div class="field grow"><label for="expenseVatDeduct">PERCENTUALE IVA DETRAIBILE</label><div class="percent-input"><input id="expenseVatDeduct" type="number" min="0" max="100" value="100" /><span>%</span></div></div>
+      </div>
+      <div class="field-row">
         <div class="field grow"><label for="expenseIresDeduct">DEDUCIBILITÀ IRES</label><div class="percent-input"><input id="expenseIresDeduct" type="number" min="0" max="100" value="100" /><span>%</span></div></div>
         <div class="field grow"><label for="expenseIrapDeduct">DEDUCIBILITÀ IRAP</label><div class="percent-input"><input id="expenseIrapDeduct" type="number" min="0" max="100" value="100" /><span>%</span></div></div>
       </div>
-      <p class="micro-note">IVA, IVA detraibile e deducibilità vengono precompilate in base al tipo di uscita. Sono valori gestionali predefiniti e restano modificabili prima della registrazione.</p>
+      <p class="micro-note">Indica esplicitamente se l’IVA è detraibile e, quando lo è, in quale percentuale. L’app somma solo la quota effettivamente detraibile all’IVA a credito e la sottrae dall’IVA da versare. I valori precompilati sono gestionali e restano modificabili prima della registrazione.</p>
       <div id="professionalExtras" class="conditional-box hidden">
         <div class="field-row">
           <div class="field grow"><label for="expensePensionRate">RIVALSA / CONTRIBUTO PREVIDENZIALE</label><div class="percent-input"><input id="expensePensionRate" type="number" min="0" max="100" value="0" step="0.01" /><span>%</span></div></div>
@@ -199,8 +203,9 @@
         </div>
         <p class="micro-note">La ritenuta viene accantonata tra le tasse da versare. Se la fattura ha regole particolari puoi modificare le percentuali.</p>
       </div>
-      <div class="live-preview three-preview">
+      <div class="live-preview four-preview">
         <div><span>IVA documento</span><strong id="expensePreviewVat">€ 0,00</strong></div>
+        <div><span>IVA detraibile</span><strong id="expensePreviewVatDeduct">€ 0,00</strong></div>
         <div><span>Ritenuta</span><strong id="expensePreviewWithholding">€ 0,00</strong></div>
         <div><span>Pagamento fornitore</span><strong id="expensePreviewCash">€ 0,00</strong></div>
       </div>
@@ -396,6 +401,6 @@
     <button id="settingsTab" class="nav-btn" type="button">IMPOST.</button>
   </nav>
 </main>
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>
