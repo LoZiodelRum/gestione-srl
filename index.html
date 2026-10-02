@@ -8,7 +8,7 @@
   <title>Gestione SRL</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css?v=6" />
+  <link rel="stylesheet" href="styles.css?v=8" />
 </head>
 <body>
 <main class="app-shell">
@@ -40,6 +40,10 @@
           <div class="field grow"><label for="dashIncomeCategory">CATEGORIA</label><select id="dashIncomeCategory"><option value="Servizi">Servizi</option><option value="Vendite">Vendite</option><option value="Abbonamenti">Abbonamenti</option><option value="Eventi">Eventi</option><option value="Pubblicità / Sponsor">Pubblicità / Sponsor</option><option value="Altro ricavo">Altro ricavo</option></select></div>
           <div class="field grow"><label for="dashIncomePaid">INCASSATA?</label><select id="dashIncomePaid"><option value="yes">Sì</option><option value="no">No</option></select></div>
         </div>
+        <div class="field-row compact-fields">
+          <div class="field grow"><label for="dashIncomeInvoiceNo">N. FATTURA / DOCUMENTO</label><input id="dashIncomeInvoiceNo" type="text" placeholder="Es. 12/2026" /></div>
+          <div class="field grow"><label for="dashIncomePaymentMethod">METODO DI PAGAMENTO</label><select id="dashIncomePaymentMethod"><option>Bonifico</option><option>Carta</option><option>Contanti</option><option>Stripe</option><option>PayPal</option><option>Addebito</option><option>Altro</option></select></div>
+        </div>
         <div class="field"><label for="dashIncomeDescription">DESCRIZIONE</label><input id="dashIncomeDescription" type="text" placeholder="Descrizione" /></div>
         <button id="dashSaveIncomeBtn" class="primary-btn dashboard-save" type="button">REGISTRA ENTRATA</button>
       </article>
@@ -59,13 +63,15 @@
       <article class="calc-card"><h3>Costi periodo</h3><strong id="dashLiveCosts">€ 0,00</strong></article>
       <article class="calc-card"><h3>Compenso amministratore</h3><strong id="dashLiveAdmin">€ 0,00</strong></article>
       <article class="calc-card"><h3>Stipendi / personale</h3><strong id="dashLivePayroll">€ 0,00</strong></article>
-      <article class="calc-card debt-card"><h3>Contributi residui</h3><strong id="dashLiveSocial">€ 0,00</strong></article>
-      <article class="calc-card debt-card"><h3>Ritenute residue</h3><strong id="dashLiveWithholdings">€ 0,00</strong></article>
+      <article class="calc-card debt-card"><h3>Contributi da versare</h3><strong id="dashLiveSocial">€ 0,00</strong></article>
+      <article class="calc-card debt-card"><h3>Ritenute da versare</h3><strong id="dashLiveWithholdings">€ 0,00</strong></article>
       <article class="calc-card debt-card"><h3>IVA da versare</h3><strong id="dashLiveVatDue">€ 0,00</strong></article>
       <article class="calc-card"><h3>Utile prima imposte</h3><strong id="dashLivePreTax">€ 0,00</strong></article>
       <article class="calc-card"><h3>IRES stimata</h3><strong id="dashLiveIres">€ 0,00</strong></article>
       <article class="calc-card"><h3>IRAP stimata</h3><strong id="dashLiveIrap">€ 0,00</strong></article>
       <article class="calc-card accent"><h3>Utile netto stimato</h3><strong id="dashLiveNetProfit">€ 0,00</strong></article>
+      <article class="calc-card debt-card"><h3>Totale da accantonare / versare</h3><strong id="dashLiveTotalDue">€ 0,00</strong></article>
+      <article class="calc-card accent preview-available"><h3>DISPONIBILE REALE DOPO QUESTA ENTRATA</h3><strong id="dashLivePrudentCash">€ 0,00</strong><p>Liquidità prevista dopo IVA, ritenute, contributi, IRES, IRAP e altri tributi ancora da versare.</p></article>
     </section>
 
     <div class="section-title"><h2>ACCANTONAMENTI FISCALI</h2><span>maturato − versato</span></div>
@@ -103,10 +109,21 @@
 
   <!-- ENTRATE -->
   <section id="incomeView" class="view">
-    <div class="section-title"><h2>ENTRATE</h2><span>Fatture e ricavi</span></div>
-    <section class="input-card stacked-card">
+    <div class="section-title"><h2>ENTRATE</h2><span>Registro fatture e ricavi</span></div>
+
+    <section class="totals income-summary-grid">
+      <div><span>Ricavi imponibili</span><strong id="incomeTotalNet">€ 0,00</strong></div>
+      <div><span>IVA vendite</span><strong id="incomeTotalVat">€ 0,00</strong></div>
+      <div><span>Totale fatturato</span><strong id="incomeTotalGross">€ 0,00</strong></div>
+      <div><span>Totale incassato</span><strong id="incomeTotalPaid">€ 0,00</strong></div>
+      <div><span>Da incassare</span><strong id="incomeTotalUnpaid">€ 0,00</strong></div>
+      <div><span>Numero documenti</span><strong id="incomeDocumentCount">0</strong></div>
+    </section>
+
+    <section id="incomeEditPanel" class="description-card hidden">
+      <div class="section-title"><h2>MODIFICA ENTRATA</h2><button id="cancelIncomeEditBtn" class="danger-link" type="button">Annulla</button></div>
       <div class="field-row">
-        <div class="field grow"><label for="incomeAmount">IMPONIBILE ENTRATA</label><div class="amount-wrap"><span>€</span><input id="incomeAmount" inputmode="decimal" placeholder="0,00" /></div></div>
+        <div class="field grow"><label for="incomeAmount">IMPONIBILE</label><div class="amount-wrap"><span>€</span><input id="incomeAmount" inputmode="decimal" placeholder="0,00" /></div></div>
         <div class="field grow"><label for="incomeVatRate">IVA</label><select id="incomeVatRate"><option value="22">22%</option><option value="10">10%</option><option value="5">5%</option><option value="4">4%</option><option value="0">0% / esente / fuori campo</option></select></div>
       </div>
       <div class="live-preview three-preview">
@@ -114,34 +131,31 @@
         <div><span>IVA ricevuta</span><strong id="incomePreviewVat">€ 0,00</strong></div>
         <div><span>Totale cliente</span><strong id="incomePreviewGross">€ 0,00</strong></div>
       </div>
-    </section>
-
-    <section class="description-card">
       <div class="field-row">
-        <div class="field grow"><label for="incomeCustomer">CLIENTE</label><input id="incomeCustomer" type="text" placeholder="Ragione sociale / nominativo" /></div>
-        <div class="field grow"><label for="incomeInvoiceNo">N. FATTURA / DOCUMENTO</label><input id="incomeInvoiceNo" type="text" placeholder="Es. 12/2026" /></div>
+        <div class="field grow"><label for="incomeCustomer">CLIENTE</label><input id="incomeCustomer" type="text" /></div>
+        <div class="field grow"><label for="incomeInvoiceNo">N. FATTURA / DOCUMENTO</label><input id="incomeInvoiceNo" type="text" /></div>
       </div>
       <div class="field-row">
-        <div class="field grow"><label for="incomeCategory">CATEGORIA</label><select id="incomeCategory"><option value="Servizi">Servizi</option><option value="Vendite">Vendite</option><option value="Abbonamenti">Abbonamenti</option><option value="Eventi">Eventi</option><option value="Pubblicità / Sponsor">Pubblicità / Sponsor</option><option value="Altro ricavo">Altro ricavo</option></select><small class="auto-note">La categoria imposta automaticamente l'IVA predefinita; puoi sempre modificarla.</small></div>
+        <div class="field grow"><label for="incomeCategory">CATEGORIA</label><select id="incomeCategory"><option value="Servizi">Servizi</option><option value="Vendite">Vendite</option><option value="Abbonamenti">Abbonamenti</option><option value="Eventi">Eventi</option><option value="Pubblicità / Sponsor">Pubblicità / Sponsor</option><option value="Altro ricavo">Altro ricavo</option></select></div>
         <div class="field grow"><label for="incomeDate">DATA</label><input id="incomeDate" type="date" /></div>
       </div>
       <div class="field-row">
         <div class="field grow"><label for="incomePaid">INCASSATA?</label><select id="incomePaid"><option value="yes">Sì, incassata</option><option value="no">No, da incassare</option></select></div>
-        <div class="field grow"><label for="incomePaymentMethod">METODO</label><select id="incomePaymentMethod"><option>Bonifico</option><option>Carta / POS</option><option>Contanti</option><option>PayPal / Stripe</option><option>Altro</option></select></div>
+        <div class="field grow"><label for="incomePaymentMethod">METODO</label><select id="incomePaymentMethod"><option>Bonifico</option><option>Carta</option><option>Contanti</option><option>Stripe</option><option>PayPal</option><option>Addebito</option><option>Altro</option></select></div>
       </div>
-      <label for="incomeDescription">DESCRIZIONE</label><input id="incomeDescription" type="text" placeholder="Descrizione della prestazione / vendita" />
+      <label for="incomeDescription">DESCRIZIONE</label><input id="incomeDescription" type="text" />
+      <button id="saveIncomeBtn" class="primary-btn" type="button">SALVA MODIFICHE ENTRATA</button>
     </section>
-    <button id="saveIncomeBtn" class="primary-btn" type="button">REGISTRA ENTRATA</button>
 
-    <section class="totals">
-      <div><span>Entrate imponibili nel filtro</span><strong id="incomeTotalNet">€ 0,00</strong></div>
-      <div><span>IVA ricevuta nel filtro</span><strong id="incomeTotalVat">€ 0,00</strong></div>
-      <div><span>Totale fatturato IVA inclusa</span><strong id="incomeTotalGross">€ 0,00</strong></div>
-      <div><span>Totale effettivamente incassato</span><strong id="incomeTotalPaid">€ 0,00</strong></div>
-    </section>
     <section class="list-section">
       <div class="section-title"><h2>ENTRATE REGISTRATE</h2><button id="clearIncomeBtn" class="danger-link" type="button">Cancella tutte</button></div>
-      <div class="filter-row"><select id="incomeYearFilter"></select><input id="incomeSearch" type="search" placeholder="Cerca cliente, fattura, descrizione..." /></div>
+      <div class="filter-row income-filters">
+        <select id="incomeYearFilter" aria-label="Anno"></select>
+        <select id="incomeMonthFilter" aria-label="Mese"><option value="all">Tutti i mesi</option><option value="1">Gennaio</option><option value="2">Febbraio</option><option value="3">Marzo</option><option value="4">Aprile</option><option value="5">Maggio</option><option value="6">Giugno</option><option value="7">Luglio</option><option value="8">Agosto</option><option value="9">Settembre</option><option value="10">Ottobre</option><option value="11">Novembre</option><option value="12">Dicembre</option></select>
+        <select id="incomeStatusFilter" aria-label="Stato incasso"><option value="all">Tutte</option><option value="yes">Incassate</option><option value="no">Da incassare</option></select>
+        <select id="incomeCategoryFilter" aria-label="Categoria"><option value="all">Tutte le categorie</option><option value="Servizi">Servizi</option><option value="Vendite">Vendite</option><option value="Abbonamenti">Abbonamenti</option><option value="Eventi">Eventi</option><option value="Pubblicità / Sponsor">Pubblicità / Sponsor</option><option value="Altro ricavo">Altro ricavo</option></select>
+        <input id="incomeSearch" type="search" placeholder="Cerca cliente, fattura, descrizione, categoria..." />
+      </div>
       <div id="incomeList" class="invoice-list"></div><div id="incomeEmpty" class="empty-state">Nessuna entrata registrata.</div>
     </section>
   </section>
@@ -382,6 +396,6 @@
     <button id="settingsTab" class="nav-btn" type="button">IMPOST.</button>
   </nav>
 </main>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

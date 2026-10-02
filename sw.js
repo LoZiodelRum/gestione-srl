@@ -1,5 +1,5 @@
-const CACHE='gestione-srl-v6-dashboard-fiscale';
-const ASSETS=['./','./index.html','./styles.css?v=6','./app.js?v=6','./manifest.json','./icon.svg'];
+const CACHE='gestione-srl-v8-entrate-registro';
+const ASSETS=['./','./index.html','./styles.css?v=8','./app.js?v=8','./manifest.json','./icon.svg'];
 
 self.addEventListener('install',event=>{
   self.skipWaiting();
