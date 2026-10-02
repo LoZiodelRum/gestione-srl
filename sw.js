@@ -1,5 +1,5 @@
-const CACHE='gestione-srl-v9-iva-detraibile';
-const ASSETS=['./','./index.html','./styles.css?v=9','./app.js?v=9','./manifest.json','./icon.svg'];
+const CACHE='gestione-srl-v10-bilancio-annuale';
+const ASSETS=['./','./index.html','./styles.css?v=10','./app.js?v=10','./manifest.json','./icon.svg'];
 
 self.addEventListener('install',event=>{
   self.skipWaiting();
