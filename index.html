@@ -8,7 +8,7 @@
   <title>Gestione SRL</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <link rel="stylesheet" href="styles.css?v=6" />
 </head>
 <body>
 <main class="app-shell">
@@ -28,39 +28,76 @@
       <button id="todayPeriodBtn" class="secondary-btn small-btn" type="button">PERIODO CORRENTE</button>
     </section>
 
-    <div class="section-title"><h2>RIEPILOGO PERIODO</h2><span id="periodLabel"></span></div>
-    <section class="cards-grid dashboard-grid">
-      <article class="calc-card"><div class="icon">+</div><h3>Ricavi</h3><p>imponibile, IVA esclusa</p><strong id="dashRevenue">€ 0,00</strong></article>
-      <article class="calc-card vat-card"><div class="icon">IVA</div><h3>IVA vendite</h3><p>IVA incassata dai clienti</p><strong id="dashVatOut">€ 0,00</strong></article>
-      <article class="calc-card"><div class="icon">−</div><h3>Costi economici</h3><p>costi di competenza registrati</p><strong id="dashCosts">€ 0,00</strong></article>
-      <article class="calc-card"><div class="icon">IVA−</div><h3>IVA detraibile</h3><p>IVA acquisti recuperabile</p><strong id="dashVatIn">€ 0,00</strong></article>
-      <article class="calc-card"><div class="icon">↔</div><h3>Flusso di cassa</h3><p>incassi meno pagamenti</p><strong id="dashCashFlow">€ 0,00</strong></article>
-      <article class="calc-card accent"><div class="icon">↗</div><h3>Utile netto stimato</h3><p>ante imposte meno IRES e IRAP</p><strong id="dashNetProfit">€ 0,00</strong></article>
+    <div class="section-title"><h2>NUOVA ENTRATA</h2><span>calcolo immediato</span></div>
+    <section class="dashboard-entry-grid">
+      <article class="quick-entry-card">
+        <div class="field"><label for="dashIncomeAmount">IMPORTO IMPONIBILE</label><div class="amount-wrap hero-amount"><span>€</span><input id="dashIncomeAmount" inputmode="decimal" placeholder="0,00" /></div><small>Inserisci sempre l'importo IVA esclusa.</small></div>
+        <div class="field-row compact-fields">
+          <div class="field grow"><label for="dashIncomeCustomer">CLIENTE</label><input id="dashIncomeCustomer" type="text" placeholder="Cliente" /></div>
+          <div class="field grow"><label for="dashIncomeDate">DATA</label><input id="dashIncomeDate" type="date" /></div>
+        </div>
+        <div class="field-row compact-fields">
+          <div class="field grow"><label for="dashIncomeCategory">CATEGORIA</label><select id="dashIncomeCategory"><option value="Servizi">Servizi</option><option value="Vendite">Vendite</option><option value="Abbonamenti">Abbonamenti</option><option value="Eventi">Eventi</option><option value="Pubblicità / Sponsor">Pubblicità / Sponsor</option><option value="Altro ricavo">Altro ricavo</option></select></div>
+          <div class="field grow"><label for="dashIncomePaid">INCASSATA?</label><select id="dashIncomePaid"><option value="yes">Sì</option><option value="no">No</option></select></div>
+        </div>
+        <div class="field"><label for="dashIncomeDescription">DESCRIZIONE</label><input id="dashIncomeDescription" type="text" placeholder="Descrizione" /></div>
+        <button id="dashSaveIncomeBtn" class="primary-btn dashboard-save" type="button">REGISTRA ENTRATA</button>
+      </article>
+
+      <article class="vat-input-card">
+        <div class="field"><label for="dashIncomeVatRate">ALIQUOTA IVA</label><select id="dashIncomeVatRate"><option value="22">22%</option><option value="10">10%</option><option value="5">5%</option><option value="4">4%</option><option value="0">0%</option><option value="0">Esente</option><option value="0">Fuori campo</option></select></div>
+        <div class="vat-result"><span>IMPORTO IVA</span><strong id="dashInputVat">€ 0,00</strong></div>
+        <div class="vat-result total"><span>TOTALE FATTURA</span><strong id="dashInputGross">€ 0,00</strong></div>
+      </article>
     </section>
 
-    <section class="totals compact-totals">
+    <div class="section-title"><h2>EFFETTO IMMEDIATO</h2><span id="periodLabel"></span></div>
+    <section class="cards-grid dashboard-grid live-calcs">
+      <article class="calc-card"><h3>Ricavo imponibile</h3><strong id="dashLiveRevenue">€ 0,00</strong></article>
+      <article class="calc-card vat-card"><h3>IVA incassata</h3><strong id="dashLiveVat">€ 0,00</strong></article>
+      <article class="calc-card"><h3>Totale cliente</h3><strong id="dashLiveGross">€ 0,00</strong></article>
+      <article class="calc-card"><h3>Costi periodo</h3><strong id="dashLiveCosts">€ 0,00</strong></article>
+      <article class="calc-card"><h3>Compenso amministratore</h3><strong id="dashLiveAdmin">€ 0,00</strong></article>
+      <article class="calc-card"><h3>Stipendi / personale</h3><strong id="dashLivePayroll">€ 0,00</strong></article>
+      <article class="calc-card debt-card"><h3>Contributi residui</h3><strong id="dashLiveSocial">€ 0,00</strong></article>
+      <article class="calc-card debt-card"><h3>Ritenute residue</h3><strong id="dashLiveWithholdings">€ 0,00</strong></article>
+      <article class="calc-card debt-card"><h3>IVA da versare</h3><strong id="dashLiveVatDue">€ 0,00</strong></article>
+      <article class="calc-card"><h3>Utile prima imposte</h3><strong id="dashLivePreTax">€ 0,00</strong></article>
+      <article class="calc-card"><h3>IRES stimata</h3><strong id="dashLiveIres">€ 0,00</strong></article>
+      <article class="calc-card"><h3>IRAP stimata</h3><strong id="dashLiveIrap">€ 0,00</strong></article>
+      <article class="calc-card accent"><h3>Utile netto stimato</h3><strong id="dashLiveNetProfit">€ 0,00</strong></article>
+    </section>
+
+    <div class="section-title"><h2>ACCANTONAMENTI FISCALI</h2><span>maturato − versato</span></div>
+    <section class="reserve-grid">
+      <article><span>IVA da versare</span><strong id="dashVatBalance">€ 0,00</strong></article>
+      <article><span>IRES accantonata</span><strong id="dashIresReserve">€ 0,00</strong></article>
+      <article><span>IRAP accantonata</span><strong id="dashIrapReserve">€ 0,00</strong></article>
+      <article><span>Ritenute da versare</span><strong id="dashWithholdings">€ 0,00</strong></article>
+      <article><span>Contributi INPS da versare</span><strong id="dashSocial">€ 0,00</strong></article>
+      <article><span>Altri tributi da versare</span><strong id="dashOtherTaxes">€ 0,00</strong></article>
+    </section>
+
+    <section class="totals compact-totals dashboard-summary">
+      <div><span>Ricavi imponibili periodo</span><strong id="dashRevenue">€ 0,00</strong></div>
+      <div><span>IVA vendite</span><strong id="dashVatOut">€ 0,00</strong></div>
+      <div><span>Costi economici</span><strong id="dashCosts">€ 0,00</strong></div>
+      <div><span>IVA detraibile</span><strong id="dashVatIn">€ 0,00</strong></div>
       <div><span>Incassi clienti IVA inclusa</span><strong id="dashCustomerReceipts">€ 0,00</strong></div>
       <div><span>Pagamenti/uscite di cassa</span><strong id="dashCashOut">€ 0,00</strong></div>
-      <div><span>IVA da versare / credito</span><strong id="dashVatBalance">€ 0,00</strong></div>
-      <div><span>Ritenute da versare</span><strong id="dashWithholdings">€ 0,00</strong></div>
-      <div><span>Contributi previdenziali da versare</span><strong id="dashSocial">€ 0,00</strong></div>
-      <div><span>IRES + IRAP stimate residue</span><strong id="dashCorpTaxes">€ 0,00</strong></div>
+      <div><span>Flusso di cassa periodo</span><strong id="dashCashFlow">€ 0,00</strong></div>
+      <div><span>Utile netto stimato</span><strong id="dashNetProfit">€ 0,00</strong></div>
+      <div><span>IRES + IRAP residue</span><strong id="dashCorpTaxes">€ 0,00</strong></div>
     </section>
 
-    <section class="grand-total">
-      <span>Liquidità prudenziale</span>
-      <strong id="dashPrudentCash">€ 0,00</strong>
-      <small>Saldo di cassa stimato meno debiti IVA, ritenute, contributi e imposte societarie ancora da versare.</small>
+    <section class="final-results">
+      <article class="profit-total"><span>UTILE NETTO STIMATO</span><strong id="dashFinalNetProfit">€ 0,00</strong><small>Risultato economico stimato dopo IRES e IRAP.</small></article>
+      <article class="grand-total"><span>LIQUIDITÀ RESIDUA REALE</span><strong id="dashPrudentCash">€ 0,00</strong><small>Saldo di cassa stimato meno IVA, ritenute, contributi e imposte societarie residue.</small></article>
     </section>
 
     <section class="settings-card">
       <div class="section-title"><h2>ANDAMENTO MENSILE</h2><span id="monthlyYearLabel"></span></div>
-      <div class="monthly-table-wrap">
-        <table class="monthly-table">
-          <thead><tr><th>Mese</th><th>Ricavi</th><th>Costi</th><th>IVA</th><th>Cassa</th><th>Utile netto</th></tr></thead>
-          <tbody id="monthlyTableBody"></tbody>
-        </table>
-      </div>
+      <div class="monthly-table-wrap"><table class="monthly-table"><thead><tr><th>Mese</th><th>Ricavi</th><th>Costi</th><th>IVA</th><th>Cassa</th><th>Utile netto</th></tr></thead><tbody id="monthlyTableBody"></tbody></table></div>
     </section>
   </section>
 
@@ -323,6 +360,12 @@
       <div class="settings-row"><div><strong>Addizionali IRPEF stimate paghe</strong><small>Valore gestionale per la precompilazione; può essere corretto.</small></div><div class="percent-input small"><input id="settingSalaryAdditionalRate" type="number" min="0" max="10" step="0.01" /><span>%</span></div></div>
       <div class="settings-row"><div><strong>Rivalsa professionisti predefinita</strong><small>Usata quando selezioni “Professionista”.</small></div><div class="percent-input small"><input id="settingProfessionalPensionRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
       <div class="settings-row"><div><strong>Ritenuta professionisti predefinita</strong><small>Usata quando selezioni “Professionista”.</small></div><div class="percent-input small"><input id="settingProfessionalWithholdingRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>Addizionale regionale</strong><small>Parametro gestionale personalizzabile.</small></div><div class="percent-input small"><input id="settingRegionalAdditional" type="number" min="0" max="10" step="0.01" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>Addizionale comunale</strong><small>Parametro gestionale personalizzabile.</small></div><div class="percent-input small"><input id="settingMunicipalAdditional" type="number" min="0" max="10" step="0.01" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>Capitale sociale</strong><small>Valore informativo della società.</small></div><div class="money-input small"><span>€</span><input id="settingShareCapital" inputmode="decimal" /></div></div>
+      <div class="settings-row"><div><strong>Riserva legale</strong><small>Valore informativo/gestionale.</small></div><div class="money-input small"><span>€</span><input id="settingLegalReserve" inputmode="decimal" /></div></div>
+      <div class="settings-row"><div><strong>Anno fiscale</strong><small>Anno predefinito dell'app.</small></div><div class="money-input small"><input id="settingFiscalYear" type="number" min="2000" max="2100" /></div></div>
+      <div class="settings-row"><div><strong>Altri tributi maturati</strong><small>Debiti fiscali non compresi in IVA, IRES, IRAP, ritenute e contributi.</small></div><div class="money-input small"><span>€</span><input id="settingOtherTaxesAccrued" inputmode="decimal" /></div></div>
       <button id="saveSettingsBtn" class="primary-btn" type="button">SALVA IMPOSTAZIONI</button>
     </section>
 
@@ -339,6 +382,6 @@
     <button id="settingsTab" class="nav-btn" type="button">IMPOST.</button>
   </nav>
 </main>
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
