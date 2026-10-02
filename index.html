@@ -8,7 +8,7 @@
   <title>Gestione SRL</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css?v=10" />
+  <link rel="stylesheet" href="styles.css?v=11" />
 </head>
 <body>
 <main class="app-shell">
@@ -59,13 +59,22 @@
     <section class="description-card template-card">
       <div class="field"><label for="expenseType">TIPO DI USCITA</label>
         <select id="expenseType">
-          <option value="supplier">Fattura fornitore / acquisto</option>
+          <option value="supplier">Fattura fornitore / acquisto generico</option>
           <option value="professional">Professionista con eventuale ritenuta</option>
+          <option value="software">Software / servizi digitali</option>
+          <option value="advertising">Pubblicità / marketing</option>
+          <option value="phone">Telefonia mobile e fissa</option>
+          <option value="representation">Spese di rappresentanza</option>
+          <option value="vehicleMixed">Autovettura non aziendale / uso promiscuo</option>
+          <option value="vehicleEmployee">Autovettura assegnata a dipendente</option>
+          <option value="vehicleInstrumental">Autovettura esclusivamente strumentale</option>
+          <option value="vehicleAgent">Autovettura agente / rappresentante</option>
           <option value="salary">Stipendio dipendente</option>
           <option value="administrator">Compenso amministratore (gestione paghe)</option>
           <option value="rent">Affitto / locazione</option>
           <option value="asset">Bene strumentale / attrezzatura</option>
-          <option value="bank">Banca / commissioni / interessi</option>
+          <option value="bankFees">Banca / commissioni</option>
+          <option value="interest">Interessi passivi</option>
           <option value="insurance">Assicurazione</option>
           <option value="taxcost">Imposta / tributo / diritto</option>
           <option value="reimbursement">Rimborso spese</option>
@@ -87,6 +96,7 @@
         <div class="field grow"><label for="expenseIresDeduct">DEDUCIBILITÀ IRES</label><div class="percent-input"><input id="expenseIresDeduct" type="number" min="0" max="100" value="100" /><span>%</span></div></div>
         <div class="field grow"><label for="expenseIrapDeduct">DEDUCIBILITÀ IRAP</label><div class="percent-input"><input id="expenseIrapDeduct" type="number" min="0" max="100" value="100" /><span>%</span></div></div>
       </div>
+      <small id="expenseDeductibilityHint" class="tax-hint">Le percentuali vengono proposte automaticamente in base alla tipologia scelta e restano modificabili.</small>
       <p class="micro-note">Indica esplicitamente se l’IVA è detraibile e, quando lo è, in quale percentuale. L’app somma solo la quota effettivamente detraibile all’IVA a credito e la sottrae dall’IVA da versare. I valori precompilati sono gestionali e restano modificabili prima della registrazione.</p>
       <div id="professionalExtras" class="conditional-box hidden">
         <div class="field-row">
@@ -412,6 +422,6 @@
     <button id="settingsTab" class="nav-btn" type="button">IMPOST.</button>
   </nav>
 </main>
-<script src="app.js?v=10"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

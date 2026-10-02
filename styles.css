@@ -88,3 +88,5 @@ html{background:#eef2f7}body{margin:0;background:#eef2f7;font-family:-apple-syst
 @media(max-width:900px){.income-filters{grid-template-columns:repeat(2,1fr)}.income-filters input{grid-column:1/-1}}
 @media(max-width:700px){.balance-columns{grid-template-columns:1fr}}
 @media(max-width:600px){.income-summary-grid,.expense-summary-grid{grid-template-columns:1fr}.income-summary-grid div:nth-last-child(-n+2),.expense-summary-grid div:nth-last-child(-n+2){border-bottom:1px solid #b9cce5}.income-summary-grid div:last-child,.expense-summary-grid div:last-child{border-bottom:0}.income-filters{grid-template-columns:1fr}.income-filters input{grid-column:auto}.bottom-nav.six-cols .nav-btn{font-size:9px;padding-left:1px;padding-right:1px}}
+
+.tax-hint{display:block;margin:-2px 2px 14px;color:#5d6b7d;font-size:.82rem;line-height:1.4}
