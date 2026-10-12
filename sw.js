@@ -1,5 +1,5 @@
-const CACHE='gestione-srl-v11-deducibilita-automatica';
-const ASSETS=['./','./index.html','./styles.css?v=11','./app.js?v=11','./manifest.json','./icon.svg'];
+const CACHE='gestione-srl-v12-paghe-2026';
+const ASSETS=['./','./index.html','./styles.css?v=12','./app.js?v=12','./manifest.json','./icon.svg'];
 
 self.addEventListener('install',event=>{
   self.skipWaiting();

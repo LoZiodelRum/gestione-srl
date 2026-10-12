@@ -8,7 +8,7 @@
   <title>Gestione SRL</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css?v=11" />
+  <link rel="stylesheet" href="styles.css?v=12" />
 </head>
 <body>
 <main class="app-shell">
@@ -128,9 +128,16 @@
         </div>
         <div class="field-row">
           <div class="field grow"><label for="salaryAdditionalRate">ADDIZIONALI IRPEF STIMATE</label><div class="percent-input"><input id="salaryAdditionalRate" type="number" min="0" max="10" step="0.01" /><span>%</span></div></div>
-          <div class="field grow"><label>PROIEZIONE IMPONIBILE ANNUO</label><div class="readout" id="salaryAnnualProjection">€ 0,00</div></div>
+          <div class="field grow"><label for="salaryPaymentsPerYear">MENSILITÀ ANNUE</label><input id="salaryPaymentsPerYear" type="number" min="1" max="16" step="1" value="14" /></div>
         </div>
-        <p class="micro-note">Inserisci solo il lordo: l'app stima automaticamente contributi, IRPEF, addizionali, netto, costo aziendale e TFR. Le aliquote sono modificabili perché il cedolino reale dipende da CCNL, qualifica, agevolazioni, detrazioni e situazione personale.</p>
+        <div class="field-row">
+          <div class="field grow"><label>PROIEZIONE IMPONIBILE ANNUO</label><div class="readout" id="salaryAnnualProjection">€ 0,00</div></div>
+          <div class="field grow"><label>IRPEF ANNUA STIMATA DOPO DETRAZIONE LAVORO</label><div class="readout" id="salaryAnnualIrpef">€ 0,00</div></div>
+        </div>
+        <div class="field-row">
+          <div class="field grow"><label>DETRAZIONE LAVORO DIPENDENTE STIMATA</label><div class="readout" id="salaryWorkDeduction">€ 0,00</div></div>
+        </div>
+        <p class="micro-note"><strong>Inserisci il NETTO mensile desiderato.</strong> L'app ricostruisce il lordo a ritroso. Per il 2026 usa IRPEF 23% / 33% / 43% e la detrazione ordinaria da lavoro dipendente. I contributi (9,19% lavoratore e 30% azienda), il TFR 7,4074% e le addizionali restano stime modificabili: il cedolino definitivo dipende da CCNL, qualifica, residenza, agevolazioni e situazione personale.</p>
       </div>
 
       <div id="administratorAutoBox" class="conditional-box hidden">
@@ -174,7 +181,7 @@
       <div class="payroll-net-primary">
         <label for="payrollNet">NETTO PAGATO</label>
         <div class="money-input payroll-net-input"><span>€</span><input id="payrollNet" inputmode="decimal" placeholder="0,00" /></div>
-        <small>Inserisci qui l’importo netto che vuoi effettivamente pagare. Tutti gli altri valori vengono calcolati automaticamente.</small>
+        <small>Inserisci qui il netto mensile desiderato (es. 1.500 €). Per lo stipendio dipendente il lordo viene stimato automaticamente a ritroso.</small>
       </div>
       <div class="field-row">
         <div class="field grow"><label for="payrollGross">RETRIBUZIONE / COMPENSO LORDO</label><div class="money-input"><span>€</span><input id="payrollGross" inputmode="decimal" placeholder="0,00" /></div></div>
@@ -391,10 +398,11 @@
       <div class="settings-row"><div><strong>Credito IVA iniziale</strong><small>Credito riportato da periodi precedenti.</small></div><div class="money-input small"><span>€</span><input id="settingOpeningVatCredit" inputmode="decimal" /></div></div>
       <div class="settings-row"><div><strong>Variazioni fiscali IRES</strong><small>+ aumenta l'imponibile, − lo riduce.</small></div><div class="money-input small"><span>€</span><input id="settingIresAdjustments" inputmode="decimal" /></div></div>
       <div class="settings-row"><div><strong>Rettifica base IRAP</strong><small>Rettifica manuale per il commercialista.</small></div><div class="money-input small"><span>€</span><input id="settingIrapAdjustments" inputmode="decimal" /></div></div>
-      <div class="settings-row"><div><strong>Contributi dipendente - quota lavoratore</strong><small>Predefinito per il calcolo automatico dello stipendio; personalizzabile.</small></div><div class="percent-input small"><input id="settingSalaryEmployeeRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
-      <div class="settings-row"><div><strong>Contributi dipendente - quota azienda</strong><small>Stima gestionale personalizzabile in base al CCNL/inquadramento.</small></div><div class="percent-input small"><input id="settingSalaryEmployerRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
-      <div class="settings-row"><div><strong>TFR predefinito</strong><small>Quota annua teorica retribuzione/13,5, espressa in percentuale.</small></div><div class="percent-input small"><input id="settingSalaryTfrRate" type="number" min="0" max="100" step="0.0001" /><span>%</span></div></div>
-      <div class="settings-row"><div><strong>Addizionali IRPEF stimate paghe</strong><small>Valore gestionale per la precompilazione; può essere corretto.</small></div><div class="percent-input small"><input id="settingSalaryAdditionalRate" type="number" min="0" max="10" step="0.01" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>Contributi dipendente - quota lavoratore</strong><small>Stima predefinita 9,19%; può cambiare in base all’inquadramento e alla posizione contributiva.</small></div><div class="percent-input small"><input id="settingSalaryEmployeeRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>Contributi dipendente - quota azienda</strong><small>Stima gestionale 30%: l’aliquota effettiva varia per settore, dimensione, qualifica e agevolazioni.</small></div><div class="percent-input small"><input id="settingSalaryEmployerRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>TFR predefinito</strong><small>7,4074% = 1/13,5 della retribuzione utile; valore teorico prima delle rettifiche previste dalla disciplina TFR.</small></div><div class="percent-input small"><input id="settingSalaryTfrRate" type="number" min="0" max="100" step="0.0001" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>Addizionali IRPEF stimate paghe</strong><small>Predefinito 3,10% come stima prudenziale Campania/Napoli; il valore reale dipende dalla residenza fiscale del dipendente e dagli scaglioni.</small></div><div class="percent-input small"><input id="settingSalaryAdditionalRate" type="number" min="0" max="10" step="0.01" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>Mensilità annue stipendio</strong><small>Predefinito 14 per CCNL Terziario/Commercio; modifica se il contratto applicato prevede un numero diverso.</small></div><div class="money-input small"><input id="settingSalaryPaymentsPerYear" type="number" min="1" max="16" step="1" /></div></div>
       <div class="settings-row"><div><strong>Rivalsa professionisti predefinita</strong><small>Usata quando selezioni “Professionista”.</small></div><div class="percent-input small"><input id="settingProfessionalPensionRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
       <div class="settings-row"><div><strong>Ritenuta professionisti predefinita</strong><small>Usata quando selezioni “Professionista”.</small></div><div class="percent-input small"><input id="settingProfessionalWithholdingRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
       <div class="settings-row"><div><strong>Addizionale regionale</strong><small>Parametro gestionale personalizzabile.</small></div><div class="percent-input small"><input id="settingRegionalAdditional" type="number" min="0" max="10" step="0.01" /><span>%</span></div></div>
@@ -422,6 +430,6 @@
     <button id="settingsTab" class="nav-btn" type="button">IMPOST.</button>
   </nav>
 </main>
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
