@@ -1,6 +1,7 @@
 (() => {
   const DRINKWISE_REDEEM_URL = 'https://drinkwise.it/api/public/gestione-srl-redeem';
   const RESET_URL = 'https://drinkwise.it/reset-password';
+  const TAB_AUTH_KEY = 'gestione_srl_tab_authorized';
 
   function getSb() { return window.gestioneSrlSupabase || null; }
   function authErrorEl() { return document.getElementById('srlAuthError'); }
@@ -11,6 +12,30 @@
     if (!el) return;
     el.textContent = message || '';
     el.style.color = isError ? '#b42318' : '#365a86';
+  }
+
+  function decorateReservedLogin() {
+    const overlay = overlayEl();
+    if (!overlay) return;
+    const card = overlay.querySelector('.srl-auth-card');
+    if (!card || card.dataset.reservedDecorated === '1') return;
+    card.dataset.reservedDecorated = '1';
+
+    const title = card.querySelector('h2');
+    if (title) title.textContent = 'GESTIONE SRL';
+    const intro = card.querySelector('p');
+    if (intro) intro.textContent = 'Accesso riservato agli utenti autorizzati da DrinkWise.';
+
+    const notice = document.createElement('div');
+    notice.style.margin = '0 0 16px';
+    notice.style.padding = '10px 12px';
+    notice.style.borderRadius = '10px';
+    notice.style.background = '#f3f6fa';
+    notice.style.color = '#44586f';
+    notice.style.fontSize = '12px';
+    notice.style.lineHeight = '1.45';
+    notice.innerHTML = '<strong>Area protetta</strong><br>Nessuna registrazione libera. L\'accesso viene autorizzato esclusivamente dall\'Amministratore DrinkWise.';
+    intro?.insertAdjacentElement('afterend', notice);
   }
 
   function addForgotPassword() {
@@ -39,18 +64,14 @@
       btn.disabled = false;
       btn.textContent = 'PASSWORD DIMENTICATA?';
       if (error) return setMessage('Non è stato possibile inviare il link. Riprova.', true);
-      setMessage('Link per reimpostare la password inviato alla tua email.');
+      setMessage('Se l’indirizzo è autorizzato, riceverai il link per reimpostare la password.');
     };
     err.insertAdjacentElement('beforebegin', btn);
   }
 
-  async function consumeDrinkwiseHandoff() {
+  async function consumeDrinkwiseHandoff(token) {
     const sb = getSb();
-    if (!sb) return false;
-
-    const params = new URLSearchParams(location.search);
-    const token = params.get('handoff');
-    if (!token || !/^[a-f0-9]{64}$/.test(token)) return false;
+    if (!sb || !token || !/^[a-f0-9]{64}$/.test(token)) return false;
 
     history.replaceState(null, '', location.pathname + location.hash);
     setMessage('Accesso automatico da DrinkWise in corso...');
@@ -75,6 +96,7 @@
         setMessage('Accesso automatico non riuscito. Accedi con email e password.', true);
         return false;
       }
+      sessionStorage.setItem(TAB_AUTH_KEY, 'handoff');
       overlayEl()?.classList.add('hidden');
       setMessage('');
       return true;
@@ -87,10 +109,35 @@
 
   async function init() {
     for (let i = 0; i < 50 && !getSb(); i++) await new Promise(r => setTimeout(r, 100));
-    if (!getSb()) return;
+    const sb = getSb();
+    if (!sb) return;
     for (let i = 0; i < 50 && !overlayEl(); i++) await new Promise(r => setTimeout(r, 100));
+
+    decorateReservedLogin();
     addForgotPassword();
-    await consumeDrinkwiseHandoff();
+
+    const params = new URLSearchParams(location.search);
+    const handoff = params.get('handoff');
+
+    if (handoff && /^[a-f0-9]{64}$/.test(handoff)) {
+      await consumeDrinkwiseHandoff(handoff);
+    } else if (!sessionStorage.getItem(TAB_AUTH_KEY)) {
+      // Accesso diretto: una vecchia sessione browser non basta.
+      // Alla nuova apertura dell'app mostriamo sempre il login riservato.
+      await sb.auth.signOut({ scope: 'local' });
+      overlayEl()?.classList.remove('hidden');
+      setMessage('Inserisci le credenziali dell’account autorizzato.');
+    }
+
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        if (!sessionStorage.getItem(TAB_AUTH_KEY)) sessionStorage.setItem(TAB_AUTH_KEY, 'direct');
+      }
+      if (event === 'SIGNED_OUT') {
+        sessionStorage.removeItem(TAB_AUTH_KEY);
+        overlayEl()?.classList.remove('hidden');
+      }
+    });
   }
 
   init();
