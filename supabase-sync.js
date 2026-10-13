@@ -11,6 +11,7 @@
   let syncRunning = false;
   let syncQueued = false;
   let hydrated = false;
+  let migrationPass = false;
   const originalPersist = persist;
   const originalEditIncome = editIncome;
   const originalEditExpense = editExpense;
@@ -32,10 +33,10 @@
     overlay.innerHTML = `<div class="srl-auth-card"><h2>GESTIONE SRL</h2><p>Accedi con lo stesso account amministrativo DrinkWise.</p><label>EMAIL</label><input id="srlAuthEmail" type="email" autocomplete="username"><label>PASSWORD</label><input id="srlAuthPassword" type="password" autocomplete="current-password"><button id="srlAuthBtn" type="button">ACCEDI</button><div id="srlAuthError" class="srl-auth-error"></div></div>`;
     document.body.appendChild(overlay);
 
-    const status = document.createElement('div');
-    status.id = 'srlCloudStatus';
-    status.innerHTML = `<span id="srlCloudText">Cloud non connesso</span><button id="srlLogoutBtn" type="button" hidden>Esci</button>`;
-    document.body.appendChild(status);
+    const statusBox = document.createElement('div');
+    statusBox.id = 'srlCloudStatus';
+    statusBox.innerHTML = `<span id="srlCloudText">Cloud non connesso</span><button id="srlLogoutBtn" type="button" hidden>Esci</button>`;
+    document.body.appendChild(statusBox);
 
     document.getElementById('srlAuthBtn').onclick = signIn;
     document.getElementById('srlAuthPassword').addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
@@ -123,29 +124,31 @@
   async function loadCloud() {
     status('Sincronizzazione...');
     const [{ data: rows, error: rowsError }, { data: remoteSettings, error: settingsError }] = await Promise.all([
-      sb.from('movimenti_finanziari').select('*').eq('fiscalmente_rilevante', true).order('data_movimento', { ascending: false }),
+      sb.from('movimenti_finanziari').select('*').order('data_movimento', { ascending: false }),
       sb.from('gestione_srl_settings').select('settings').eq('id', 'default').maybeSingle()
     ]);
     if (rowsError) throw rowsError;
     if (settingsError) throw settingsError;
 
-    const ownRows = rows.filter(r => r.origine === 'gestione_srl');
+    const ownRows = (rows || []).filter(r => r.origine === 'gestione_srl');
     const ownIncome = ownRows.map(cloudIncomeFromRow).filter(Boolean);
     const ownExpense = ownRows.map(cloudExpenseFromRow).filter(Boolean);
     const ownTax = ownRows.map(cloudTaxFromRow).filter(Boolean);
-    const externalIncome = rows.filter(r => r.tipo === 'entrata' && r.origine !== 'gestione_srl').map(cloudIncomeFromRow);
+    const externalIncome = (rows || []).filter(r => r.tipo === 'entrata' && r.origine !== 'gestione_srl' && r.fiscalmente_rilevante !== false).map(cloudIncomeFromRow);
 
     const localOwnCount = incomes.filter(x => !x._cloudReadOnly).length + expenses.filter(x => !x._cloudReadOnly).length + taxPayments.length;
-    if (ownRows.length === 0 && localOwnCount > 0) {
+    if (!migrationPass && ownRows.length === 0 && localOwnCount > 0) {
+      migrationPass = true;
       await pushCloud();
-    } else {
-      incomes = [...ownIncome, ...externalIncome];
-      expenses = ownExpense;
-      taxPayments = ownTax;
-      if (remoteSettings?.settings && Object.keys(remoteSettings.settings).length) settings = Object.assign({}, DEFAULT_SETTINGS, remoteSettings.settings);
-      originalPersist();
-      loadSettings(); fillYears(); renderAll(); autoFillTaxPayment();
+      return loadCloud();
     }
+
+    incomes = [...ownIncome, ...externalIncome];
+    expenses = ownExpense;
+    taxPayments = ownTax;
+    if (remoteSettings?.settings && Object.keys(remoteSettings.settings).length) settings = Object.assign({}, DEFAULT_SETTINGS, remoteSettings.settings);
+    originalPersist();
+    loadSettings(); fillYears(); renderAll(); autoFillTaxPayment();
     hydrated = true;
     markReadOnly();
     status('Cloud sincronizzato');
@@ -159,16 +162,26 @@
 
     const { data: existing, error: readError } = await sb.from('movimenti_finanziari').select('id,external_reference').eq('origine', 'gestione_srl');
     if (readError) throw readError;
-    if (desired.length) {
-      const { error } = await sb.from('movimenti_finanziari').upsert(desired, { onConflict: 'external_reference' });
-      if (error) throw error;
+    const byRef = new Map((existing || []).map(x => [x.external_reference, x]));
+
+    for (const row of desired) {
+      const found = byRef.get(row.external_reference);
+      if (found?.id) {
+        const { error } = await sb.from('movimenti_finanziari').update(row).eq('id', found.id).eq('origine', 'gestione_srl');
+        if (error) throw error;
+      } else {
+        const { error } = await sb.from('movimenti_finanziari').insert(row);
+        if (error) throw error;
+      }
     }
+
     const wanted = new Set(desired.map(x => x.external_reference));
     const staleIds = (existing || []).filter(x => x.external_reference && !wanted.has(x.external_reference)).map(x => x.id);
     if (staleIds.length) {
       const { error } = await sb.from('movimenti_finanziari').delete().in('id', staleIds).eq('origine', 'gestione_srl');
       if (error) throw error;
     }
+
     const { error: settingsError } = await sb.from('gestione_srl_settings').upsert({ id: 'default', settings, updated_by: sessionUser.id, updated_at: new Date().toISOString() });
     if (settingsError) throw settingsError;
   }
@@ -209,8 +222,9 @@
 
   function markReadOnly() {
     incomes.filter(x => x._cloudReadOnly).forEach(x => {
-      const edit = document.querySelector(`[data-edit-income="${CSS.escape(String(x.id))}"]`);
-      const del = document.querySelector(`[data-del-income="${CSS.escape(String(x.id))}"]`);
+      const id = String(x.id).replace(/"/g, '\\"');
+      const edit = document.querySelector(`[data-edit-income="${id}"]`);
+      const del = document.querySelector(`[data-del-income="${id}"]`);
       [edit, del].forEach(b => { if (b) { b.disabled = true; b.title = 'Dato sincronizzato da DrinkWise'; } });
       const article = edit?.closest('.invoice-item') || del?.closest('.invoice-item');
       if (article) {
@@ -242,6 +256,7 @@
     const logout = document.getElementById('srlLogoutBtn');
     if (!sessionUser) {
       hydrated = false;
+      migrationPass = false;
       overlay?.classList.remove('hidden');
       if (logout) logout.hidden = true;
       status('Accesso richiesto');
