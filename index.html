@@ -8,7 +8,7 @@
   <title>Gestione SRL</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css?v=12" />
+  <link rel="stylesheet" href="styles.css?v=13" />
 </head>
 <body>
 <main class="app-shell">
@@ -188,10 +188,10 @@
       </div>
       <div class="field-row">
         <div class="field grow"><label for="payrollIrpef">IRPEF + ADDIZIONALI TRATTENUTE</label><div class="money-input"><span>€</span><input id="payrollIrpef" inputmode="decimal" placeholder="0,00" /></div></div>
-        <div class="field grow"><label for="payrollEmployeeSocial">CONTRIBUTI TRATTENUTI AL LAVORATORE</label><div class="money-input"><span>€</span><input id="payrollEmployeeSocial" inputmode="decimal" placeholder="0,00" /></div></div>
+        <div class="field grow"><label for="payrollEmployeeSocial">CONTRIBUTI INPS TRATTENUTI AL LAVORATORE</label><div class="money-input"><span>€</span><input id="payrollEmployeeSocial" inputmode="decimal" placeholder="0,00" /></div></div>
       </div>
       <div class="field-row">
-        <div class="field grow"><label for="payrollEmployerSocial">CONTRIBUTI A CARICO AZIENDA</label><div class="money-input"><span>€</span><input id="payrollEmployerSocial" inputmode="decimal" placeholder="0,00" /></div></div>
+        <div class="field grow"><label for="payrollEmployerSocial">CONTRIBUTI INPS A CARICO AZIENDA</label><div class="money-input"><span>€</span><input id="payrollEmployerSocial" inputmode="decimal" placeholder="0,00" /></div></div>
         <div class="field grow"><label id="payrollTfrLabel" for="payrollTfr">TFR / ACCANTONAMENTO</label><div class="money-input"><span>€</span><input id="payrollTfr" inputmode="decimal" placeholder="0,00" /></div></div>
       </div>
       <div class="field-row">
@@ -296,7 +296,7 @@
       <div><span>IVA detraibile</span><strong id="expenseTotalVatDeduct">€ 0,00</strong></div>
       <div><span>Uscite di cassa effettive</span><strong id="expenseTotalCash">€ 0,00</strong></div>
       <div><span>Ritenute generate</span><strong id="expenseTotalWithholding">€ 0,00</strong></div>
-      <div><span>Contributi / oneri da versare</span><strong id="expenseTotalSocial">€ 0,00</strong></div>
+      <div><span>Contributi / INPS / oneri da versare</span><strong id="expenseTotalSocial">€ 0,00</strong></div>
     </section>
     <section class="settings-card">
       <div class="section-title"><h2>ANALISI PER TIPO DI USCITA</h2><span>anno selezionato</span></div>
@@ -318,7 +318,7 @@
     <section class="cards-grid">
       <article class="calc-card vat-due-card"><div class="icon">IVA</div><h3>IVA residua</h3><p>vendite − detraibile − credito − versamenti</p><strong id="taxVatDue">€ 0,00</strong></article>
       <article class="calc-card"><div class="icon">R</div><h3>Ritenute da versare</h3><p>professionisti + paghe − versamenti</p><strong id="taxWithholdingDue">€ 0,00</strong></article>
-      <article class="calc-card"><div class="icon">INPS</div><h3>Contributi da versare</h3><p>trattenuti + azienda − versamenti</p><strong id="taxSocialDue">€ 0,00</strong></article>
+      <article class="calc-card"><div class="icon">INPS</div><h3>Contributi / INPS da versare</h3><p>trattenuti + azienda − versamenti</p><strong id="taxSocialDue">€ 0,00</strong></article>
       <article class="calc-card"><div class="icon">24</div><h3>IRES stimata</h3><p>aliquota su imponibile fiscale stimato</p><strong id="taxIresDue">€ 0,00</strong></article>
       <article class="calc-card"><div class="icon">IR</div><h3>IRAP stimata</h3><p>base IRAP gestionale × aliquota</p><strong id="taxIrapDue">€ 0,00</strong></article>
       <article class="calc-card"><div class="icon">+T</div><h3>Altri tributi da versare</h3><p>altri tributi maturati − versamenti</p><strong id="taxOtherDue">€ 0,00</strong></article>
@@ -333,14 +333,14 @@
       <div><span>IVA vendite maturata</span><strong id="taxVatOut">€ 0,00</strong></div>
       <div><span>IVA detraibile acquisti</span><strong id="taxVatDeduct">€ 0,00</strong></div>
       <div><span>Ritenute maturate</span><strong id="taxWithholdingGenerated">€ 0,00</strong></div>
-      <div><span>Contributi maturati</span><strong id="taxSocialGenerated">€ 0,00</strong></div>
+      <div><span>Contributi / INPS maturati</span><strong id="taxSocialGenerated">€ 0,00</strong></div>
       <div><span>Versamenti fiscali/previdenziali registrati</span><strong id="taxPaymentsTotal">€ 0,00</strong></div>
     </section>
 
     <section class="settings-card">
       <div class="section-title"><h2>REGISTRA VERSAMENTO</h2><span>F24 / pagamento</span></div>
       <div class="field-row">
-        <div class="field grow"><label for="taxPaymentType">TIPO</label><select id="taxPaymentType"><option value="vat">IVA</option><option value="withholding">Ritenute</option><option value="social">Contributi previdenziali</option><option value="ires">IRES</option><option value="irap">IRAP</option><option value="other">Altra imposta / tributo</option></select></div>
+        <div class="field grow"><label for="taxPaymentType">TIPO</label><select id="taxPaymentType"><option value="vat">IVA</option><option value="withholding">Ritenute</option><option value="social">Contributi previdenziali / INPS</option><option value="ires">IRES</option><option value="irap">IRAP</option><option value="other">Altra imposta / tributo</option></select></div>
         <div class="field grow"><label for="taxPaymentAmount">IMPORTO</label><div class="money-input"><span>€</span><input id="taxPaymentAmount" inputmode="decimal" placeholder="0,00" /></div><small class="auto-note">Si compila automaticamente con il debito residuo del tipo selezionato.</small></div>
       </div>
       <div class="field-row"><div class="field grow"><label for="taxPaymentDate">DATA</label><input id="taxPaymentDate" type="date" /></div><div class="field grow"><label for="taxPaymentNote">NOTE</label><input id="taxPaymentNote" type="text" placeholder="Es. F24 IVA agosto" /></div></div>
@@ -398,8 +398,8 @@
       <div class="settings-row"><div><strong>Credito IVA iniziale</strong><small>Credito riportato da periodi precedenti.</small></div><div class="money-input small"><span>€</span><input id="settingOpeningVatCredit" inputmode="decimal" /></div></div>
       <div class="settings-row"><div><strong>Variazioni fiscali IRES</strong><small>+ aumenta l'imponibile, − lo riduce.</small></div><div class="money-input small"><span>€</span><input id="settingIresAdjustments" inputmode="decimal" /></div></div>
       <div class="settings-row"><div><strong>Rettifica base IRAP</strong><small>Rettifica manuale per il commercialista.</small></div><div class="money-input small"><span>€</span><input id="settingIrapAdjustments" inputmode="decimal" /></div></div>
-      <div class="settings-row"><div><strong>Contributi dipendente - quota lavoratore</strong><small>Stima predefinita 9,19%; può cambiare in base all’inquadramento e alla posizione contributiva.</small></div><div class="percent-input small"><input id="settingSalaryEmployeeRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
-      <div class="settings-row"><div><strong>Contributi dipendente - quota azienda</strong><small>Stima gestionale 30%: l’aliquota effettiva varia per settore, dimensione, qualifica e agevolazioni.</small></div><div class="percent-input small"><input id="settingSalaryEmployerRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>Contributi INPS dipendente - quota lavoratore</strong><small>Stima predefinita 9,19%; può cambiare in base all’inquadramento e alla posizione contributiva.</small></div><div class="percent-input small"><input id="settingSalaryEmployeeRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
+      <div class="settings-row"><div><strong>Contributi INPS dipendente - quota azienda</strong><small>Stima gestionale 30%: l’aliquota effettiva varia per settore, dimensione, qualifica e agevolazioni.</small></div><div class="percent-input small"><input id="settingSalaryEmployerRate" type="number" min="0" max="100" step="0.01" /><span>%</span></div></div>
       <div class="settings-row"><div><strong>TFR predefinito</strong><small>7,4074% = 1/13,5 della retribuzione utile; valore teorico prima delle rettifiche previste dalla disciplina TFR.</small></div><div class="percent-input small"><input id="settingSalaryTfrRate" type="number" min="0" max="100" step="0.0001" /><span>%</span></div></div>
       <div class="settings-row"><div><strong>Addizionali IRPEF stimate paghe</strong><small>Predefinito 3,10% come stima prudenziale Campania/Napoli; il valore reale dipende dalla residenza fiscale del dipendente e dagli scaglioni.</small></div><div class="percent-input small"><input id="settingSalaryAdditionalRate" type="number" min="0" max="10" step="0.01" /><span>%</span></div></div>
       <div class="settings-row"><div><strong>Mensilità annue stipendio</strong><small>Predefinito 14 per CCNL Terziario/Commercio; modifica se il contratto applicato prevede un numero diverso.</small></div><div class="money-input small"><input id="settingSalaryPaymentsPerYear" type="number" min="1" max="16" step="1" /></div></div>
@@ -430,6 +430,6 @@
     <button id="settingsTab" class="nav-btn" type="button">IMPOST.</button>
   </nav>
 </main>
-<script src="app.js?v=12"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>

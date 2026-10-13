@@ -1,5 +1,5 @@
-const CACHE='gestione-srl-v12-paghe-2026';
-const ASSETS=['./','./index.html','./styles.css?v=12','./app.js?v=12','./manifest.json','./icon.svg'];
+const CACHE='gestione-srl-v13-label-inps';
+const ASSETS=['./','./index.html','./styles.css?v=13','./app.js?v=13','./manifest.json','./icon.svg'];
 
 self.addEventListener('install',event=>{
   self.skipWaiting();
