@@ -1,6 +1,6 @@
-const CACHE='gestione-srl-v14-supabase-sync';
-const ASSETS=['./','./index.html','./styles.css?v=13','./app.js?v=13','./manifest.json','./icon.svg','./supabase-config.js','./supabase-sync.js'];
-const CLOUD_SCRIPTS=`<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase-config.js?v=14"></script><script src="./supabase-sync.js?v=14"></script>`;
+const CACHE='gestione-srl-v15-auth-handoff';
+const ASSETS=['./','./index.html','./styles.css?v=13','./app.js?v=13','./manifest.json','./icon.svg','./supabase-config.js','./supabase-sync.js','./gestione-srl-auth.js'];
+const CLOUD_SCRIPTS=`<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase-config.js?v=15"></script><script src="./supabase-sync.js?v=15"></script><script src="./gestione-srl-auth.js?v=15"></script>`;
 
 self.addEventListener('install',event=>{
   self.skipWaiting();
@@ -21,7 +21,7 @@ async function enhancedIndex(request){
     const type=response.headers.get('content-type')||'';
     if(!type.includes('text/html')) return response;
     let html=await response.text();
-    if(!html.includes('supabase-sync.js')) html=html.replace('</body>',`${CLOUD_SCRIPTS}</body>`);
+    if(!html.includes('gestione-srl-auth.js')) html=html.replace('</body>',`${CLOUD_SCRIPTS}</body>`);
     const enhanced=new Response(html,{status:response.status,statusText:response.statusText,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
     const copy=enhanced.clone();
     caches.open(CACHE).then(cache=>cache.put('./index.html',copy));
@@ -30,7 +30,7 @@ async function enhancedIndex(request){
     const cached=await caches.match('./index.html');
     if(!cached) throw _e;
     let html=await cached.text();
-    if(!html.includes('supabase-sync.js')) html=html.replace('</body>',`${CLOUD_SCRIPTS}</body>`);
+    if(!html.includes('gestione-srl-auth.js')) html=html.replace('</body>',`${CLOUD_SCRIPTS}</body>`);
     return new Response(html,{headers:{'Content-Type':'text/html; charset=utf-8'}});
   }
 }
