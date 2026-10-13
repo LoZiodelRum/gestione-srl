@@ -1,6 +1,6 @@
-const CACHE='gestione-srl-v15-auth-handoff';
+const CACHE='gestione-srl-v16-reserved-auth';
 const ASSETS=['./','./index.html','./styles.css?v=13','./app.js?v=13','./manifest.json','./icon.svg','./supabase-config.js','./supabase-sync.js','./gestione-srl-auth.js'];
-const CLOUD_SCRIPTS=`<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase-config.js?v=15"></script><script src="./supabase-sync.js?v=15"></script><script src="./gestione-srl-auth.js?v=15"></script>`;
+const CLOUD_SCRIPTS=`<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase-config.js?v=16"></script><script src="./supabase-sync.js?v=16"></script><script src="./gestione-srl-auth.js?v=16"></script>`;
 
 self.addEventListener('install',event=>{
   self.skipWaiting();
