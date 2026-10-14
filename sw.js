@@ -1,6 +1,6 @@
-const CACHE='gestione-srl-v20-mobile-two-columns';
-const ASSETS=['./','./index.html','./styles.css?v=13','./mobile.css?v=20','./app.js?v=13','./manifest.json','./icon.svg','./supabase-config.js','./supabase-sync.js','./gestione-srl-auth.js'];
-const CLOUD_SCRIPTS=`<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase-config.js?v=17"></script><script src="./supabase-sync.js?v=17"></script><script src="./gestione-srl-auth.js?v=17"></script>`;
+const CACHE='gestione-srl-v21-balance-inps';
+const ASSETS=['./','./index.html','./styles.css?v=13','./mobile.css?v=20','./app.js?v=13','./manifest.json','./icon.svg','./supabase-config.js','./supabase-sync.js','./gestione-srl-auth.js','./balance-inps.js'];
+const CLOUD_SCRIPTS=`<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase-config.js?v=17"></script><script src="./supabase-sync.js?v=17"></script><script src="./gestione-srl-auth.js?v=17"></script><script src="./balance-inps.js?v=21"></script>`;
 const MOBILE_STYLE='<link rel="stylesheet" href="./mobile.css?v=20" />';
 
 self.addEventListener('install',event=>{
@@ -19,6 +19,7 @@ self.addEventListener('activate',event=>{
 function enhanceHtml(html){
   if(!html.includes('mobile.css')) html=html.replace('</head>',`${MOBILE_STYLE}</head>`);
   if(!html.includes('gestione-srl-auth.js')) html=html.replace('</body>',`${CLOUD_SCRIPTS}</body>`);
+  else if(!html.includes('balance-inps.js')) html=html.replace('</body>','<script src="./balance-inps.js?v=21"></script></body>');
   return html;
 }
 
