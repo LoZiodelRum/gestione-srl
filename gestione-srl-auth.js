@@ -121,17 +121,23 @@
 
     if (handoff && /^[a-f0-9]{64}$/.test(handoff)) {
       await consumeDrinkwiseHandoff(handoff);
-    } else if (!sessionStorage.getItem(TAB_AUTH_KEY)) {
-      // Accesso diretto: una vecchia sessione browser non basta.
-      // Alla nuova apertura dell'app mostriamo sempre il login riservato.
-      await sb.auth.signOut({ scope: 'local' });
-      overlayEl()?.classList.remove('hidden');
-      setMessage('Inserisci le credenziali dell’account autorizzato.');
+    } else {
+      const { data } = await sb.auth.getSession();
+      if (data?.session?.user) {
+        sessionStorage.setItem(TAB_AUTH_KEY, sessionStorage.getItem(TAB_AUTH_KEY) || 'existing');
+        overlayEl()?.classList.add('hidden');
+        setMessage('');
+      } else {
+        overlayEl()?.classList.remove('hidden');
+        setMessage('Inserisci le credenziali dell’account autorizzato.');
+      }
     }
 
     sb.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         if (!sessionStorage.getItem(TAB_AUTH_KEY)) sessionStorage.setItem(TAB_AUTH_KEY, 'direct');
+        overlayEl()?.classList.add('hidden');
+        setMessage('');
       }
       if (event === 'SIGNED_OUT') {
         sessionStorage.removeItem(TAB_AUTH_KEY);
