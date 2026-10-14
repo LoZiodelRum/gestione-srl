@@ -1,0 +1,115 @@
+/* Gestione SRL — layout mobile compatto a 2 colonne */
+@media (max-width: 600px) {
+  /* Riga campi: due colonne reali */
+  .quick-entry-card .field-row,
+  #standardExpenseForm > .field-row,
+  .description-card:not(.template-card) > .field-row,
+  #payrollExpenseForm .field-row,
+  #professionalExtras .field-row,
+  #salaryAutoBox .field-row,
+  #administratorAutoBox .field-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 10px !important;
+    align-items: end !important;
+  }
+
+  .quick-entry-card .field-row > .field,
+  #standardExpenseForm > .field-row > .field,
+  .description-card:not(.template-card) > .field-row > .field,
+  #payrollExpenseForm .field-row > .field,
+  #professionalExtras .field-row > .field,
+  #salaryAutoBox .field-row > .field,
+  #administratorAutoBox .field-row > .field {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex: none !important;
+  }
+
+  /* Tutti i controlli normali riempiono soltanto la loro mezza colonna */
+  .quick-entry-card input,
+  .quick-entry-card select,
+  #standardExpenseForm input,
+  #standardExpenseForm select,
+  .description-card input,
+  .description-card select,
+  #payrollExpenseForm input,
+  #payrollExpenseForm select,
+  .percent-input,
+  .money-input {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Solo i due importi principali restano larghi */
+  .quick-entry-card > .field:first-child,
+  #standardExpenseForm > .field-row:first-child > .field:first-child {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .quick-entry-card .hero-amount,
+  #standardExpenseForm > .field-row:first-child .amount-wrap {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  /* Nuova entrata: anche il blocco principale usa tutta la larghezza disponibile */
+  .dashboard-entry-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Aliquota e risultati IVA più compatti: due colonne */
+  .vat-input-card {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 10px !important;
+    align-items: end !important;
+  }
+
+  .vat-input-card .field,
+  .vat-input-card .vat-result {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+
+  /* Tipo di uscita: mezzo box come gli altri campi */
+  .description-card.template-card {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .description-card.template-card > .field {
+    grid-column: 1 / 2 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .description-card.template-card > .field select {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  /* Riepilogo uscita in due colonne */
+  .live-preview.four-preview,
+  .live-preview.three-preview {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* Descrizione/note: resta utilizzabile ma non forza larghezza anomala */
+  .description-card > input {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Etichette lunghe possono andare su due righe senza allargare il box */
+  .field label {
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+}
