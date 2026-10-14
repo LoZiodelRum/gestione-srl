@@ -1,6 +1,7 @@
-const CACHE='gestione-srl-v17-auth-session-fix';
-const ASSETS=['./','./index.html','./styles.css?v=13','./app.js?v=13','./manifest.json','./icon.svg','./supabase-config.js','./supabase-sync.js','./gestione-srl-auth.js'];
+const CACHE='gestione-srl-v20-mobile-two-columns';
+const ASSETS=['./','./index.html','./styles.css?v=13','./mobile.css?v=20','./app.js?v=13','./manifest.json','./icon.svg','./supabase-config.js','./supabase-sync.js','./gestione-srl-auth.js'];
 const CLOUD_SCRIPTS=`<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase-config.js?v=17"></script><script src="./supabase-sync.js?v=17"></script><script src="./gestione-srl-auth.js?v=17"></script>`;
+const MOBILE_STYLE='<link rel="stylesheet" href="./mobile.css?v=20" />';
 
 self.addEventListener('install',event=>{
   self.skipWaiting();
@@ -15,13 +16,18 @@ self.addEventListener('activate',event=>{
   );
 });
 
+function enhanceHtml(html){
+  if(!html.includes('mobile.css')) html=html.replace('</head>',`${MOBILE_STYLE}</head>`);
+  if(!html.includes('gestione-srl-auth.js')) html=html.replace('</body>',`${CLOUD_SCRIPTS}</body>`);
+  return html;
+}
+
 async function enhancedIndex(request){
   try{
     const response=await fetch(request,{cache:'no-store'});
     const type=response.headers.get('content-type')||'';
     if(!type.includes('text/html')) return response;
-    let html=await response.text();
-    if(!html.includes('gestione-srl-auth.js')) html=html.replace('</body>',`${CLOUD_SCRIPTS}</body>`);
+    const html=enhanceHtml(await response.text());
     const enhanced=new Response(html,{status:response.status,statusText:response.statusText,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
     const copy=enhanced.clone();
     caches.open(CACHE).then(cache=>cache.put('./index.html',copy));
@@ -29,8 +35,7 @@ async function enhancedIndex(request){
   }catch(_e){
     const cached=await caches.match('./index.html');
     if(!cached) throw _e;
-    let html=await cached.text();
-    if(!html.includes('gestione-srl-auth.js')) html=html.replace('</body>',`${CLOUD_SCRIPTS}</body>`);
+    const html=enhanceHtml(await cached.text());
     return new Response(html,{headers:{'Content-Type':'text/html; charset=utf-8'}});
   }
 }
