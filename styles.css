@@ -104,3 +104,24 @@ html{background:#eef2f7}body{margin:0;background:#eef2f7;font-family:-apple-syst
   .period-bar .field select,.period-bar .field input{width:auto;min-width:170px;max-width:260px}
   .settings-row .percent-input.small,.settings-row .money-input.small{width:150px;max-width:150px}
 }
+
+/* V19 — dashboard realmente compatta su desktop */
+@media(min-width:701px){
+  .quick-entry-card .field-row{justify-content:flex-start;gap:18px}
+  .quick-entry-card .field-row .field.grow{flex:0 0 205px;max-width:205px}
+  .quick-entry-card .field-row .field.grow input,
+  .quick-entry-card .field-row .field.grow select{width:205px;max-width:205px}
+  .quick-entry-card>.field:not(:first-child){max-width:430px}
+  .quick-entry-card>.field:not(:first-child) input{width:430px;max-width:430px}
+  .quick-entry-card .hero-amount{width:320px;max-width:320px}
+  .vat-input-card{align-items:flex-start}
+  .vat-input-card .field{width:190px;max-width:190px}
+  .vat-input-card .field select{width:190px;max-width:190px}
+  .vat-input-card .vat-result{width:210px;max-width:210px}
+  #standardExpenseForm .field-row{justify-content:flex-start;gap:28px}
+  #standardExpenseForm .field-row>.field.grow{flex:0 0 300px;max-width:300px}
+  #standardExpenseForm .field-row>.field.grow>select{width:300px;max-width:300px}
+  #standardExpenseForm .field-row>.field.grow>.amount-wrap{width:300px;max-width:300px}
+  #standardExpenseForm .field-row>.field.grow>.percent-input{width:230px;max-width:230px}
+  .description-card.template-card .field select{width:520px;max-width:520px}
+}
