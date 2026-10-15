@@ -8,7 +8,7 @@
       const withholding = irpef;
       const social = empSocial + employerSocial + otherDue;
       const cash = e.paid === 'yes' ? net : 0;
-      return { economicCost, vat:0, vatDeduct:0, nonDeductibleVat:0, cash, payable:net, withholding, social, iresDeduct:economicCost, irapDeduct:economicCost, grossDocument:economicCost };
+      return { economicCost, taxableBase:economicCost, vat:0, vatDeduct:0, nonDeductibleVat:0, cash, payable:net, withholding, social, iresDeduct:economicCost, irapDeduct:economicCost, grossDocument:economicCost };
     }
 
     const base = num(e.amount);
@@ -21,13 +21,11 @@
     const vatIsDeductible = e.vatDeductible === undefined ? clampPct(e.vatDeduct) > 0 : e.vatDeductible !== 'no';
     const vatDeduct = vatIsDeductible ? vat * clampPct(e.vatDeduct) / 100 : 0;
     const nonDeductibleVat = Math.max(0, vat - vatDeduct);
-
-    // L'IVA non detraibile entra nel costo economico; l'IVA detraibile no.
     const economicCost = base + pension + nonDeductibleVat;
     const cash = e.paid === 'yes' ? supplierPay : 0;
 
     return {
-      economicCost, vat, vatDeduct, nonDeductibleVat, cash, payable:supplierPay, withholding, social:0,
+      economicCost, taxableBase:vatBase, vat, vatDeduct, nonDeductibleVat, cash, payable:supplierPay, withholding, social:0,
       iresDeduct:economicCost * clampPct(e.iresDeduct) / 100,
       irapDeduct:economicCost * clampPct(e.irapDeduct) / 100,
       grossDocument
@@ -35,9 +33,7 @@
   };
 
   function displayExpenseAmount(x, c) {
-    if (x.type === 'salary' || x.type === 'administrator') {
-      return x.paid === 'yes' ? c.cash : num(x.payrollNet);
-    }
+    if (x.type === 'salary' || x.type === 'administrator') return x.paid === 'yes' ? c.cash : num(x.payrollNet);
     return x.paid === 'yes' ? c.cash : c.payable;
   }
 
@@ -67,7 +63,7 @@
       const status = x.paid === 'yes' ? 'Pagata' : 'Da pagare';
       const detail = (x.type === 'salary' || x.type === 'administrator')
         ? `Costo economico: ${money(c.economicCost)} · Netto: ${money(num(x.payrollNet))} · Ritenute: ${money(c.withholding)} · Contributi INPS/oneri: ${money(c.social)}`
-        : `Costo economico: ${money(c.economicCost)} · IVA: ${money(c.vat)} · IVA detraibile: ${c.vatDeduct>0?money(c.vatDeduct)+' ('+clampPct(x.vatDeduct)+'%)':'No'}${c.nonDeductibleVat>0?' · IVA non detraibile nel costo: '+money(c.nonDeductibleVat):''} · Totale documento: ${money(c.grossDocument)} · ${x.paid==='yes'?'Uscita effettiva':'Da pagare al fornitore'}: ${money(shown)} · Ritenuta: ${money(c.withholding)}`;
+        : `Imponibile/costo base: ${money(c.taxableBase)} · IVA: ${money(c.vat)} · IVA detraibile: ${c.vatDeduct>0?money(c.vatDeduct)+' ('+clampPct(x.vatDeduct)+'%)':'No'}${c.nonDeductibleVat>0?' · IVA non detraibile nel costo: '+money(c.nonDeductibleVat):''} · Costo economico: ${money(c.economicCost)} · Totale documento: ${money(c.grossDocument)} · ${x.paid==='yes'?'Uscita effettiva':'Da pagare al fornitore'}: ${money(shown)} · Ritenuta: ${money(c.withholding)}`;
       return `<article class="invoice-item expense"><div class="invoice-top"><strong>${money(shown)}</strong><span>${safe(x.date)}</span></div><div class="invoice-desc">${safe(x.supplier||'Percettore non indicato')} · ${safe(expenseTypeLabel(x.type))}</div><div class="invoice-meta">${detail} · ${status}${x.docNo?' · Doc. '+safe(x.docNo):''}</div><div class="invoice-actions"><button data-edit-expense="${x.id}">Modifica</button><button data-del-expense="${x.id}">Elimina</button></div></article>`;
     }).join('');
 
@@ -81,9 +77,33 @@
     });
   };
 
+  function enforceExpenseCards() {
+    document.querySelectorAll('#expenseList .invoice-item.expense').forEach(card => {
+      const btn = card.querySelector('[data-del-expense]') || card.querySelector('[data-edit-expense]');
+      const id = btn?.dataset.delExpense || btn?.dataset.editExpense;
+      if (!id) return;
+      const x = expenses.find(v => String(v.id) === String(id));
+      if (!x) return;
+      const c = calcExpense(x);
+      const shown = displayExpenseAmount(x,c);
+      const strong = card.querySelector('.invoice-top strong');
+      if (strong) strong.textContent = money(shown);
+      const meta = card.querySelector('.invoice-meta');
+      if (meta && x.type !== 'salary' && x.type !== 'administrator') {
+        meta.textContent = `Imponibile/costo base: ${money(c.taxableBase)} · IVA: ${money(c.vat)} · IVA detraibile: ${c.vatDeduct>0?money(c.vatDeduct)+' ('+clampPct(x.vatDeduct)+'%)':'No'}${c.nonDeductibleVat>0?' · IVA non detraibile nel costo: '+money(c.nonDeductibleVat):''} · Costo economico: ${money(c.economicCost)} · Totale documento: ${money(c.grossDocument)} · ${x.paid==='yes'?'Uscita effettiva':'Da pagare al fornitore'}: ${money(shown)} · Ritenuta: ${money(c.withholding)} · ${x.paid==='yes'?'Pagata':'Da pagare'}${x.docNo?' · Doc. '+x.docNo:''}`;
+      }
+    });
+  }
+
   if ($('expenseYearFilter')) $('expenseYearFilter').onchange = renderExpense;
   if ($('expenseSearch')) $('expenseSearch').oninput = renderExpense;
 
-  // Ricalcola subito dashboard, tasse e bilancio con la distinzione costo/cassa corretta.
+  const observer = new MutationObserver(() => enforceExpenseCards());
+  const listRoot = $('expenseList');
+  if (listRoot) observer.observe(listRoot, { childList:true, subtree:true });
+
   renderAll();
+  enforceExpenseCards();
+  setTimeout(() => { renderExpense(); enforceExpenseCards(); }, 0);
+  setTimeout(() => { renderExpense(); enforceExpenseCards(); }, 500);
 })();
