@@ -101,13 +101,16 @@
   }
 
   function cloudIncomeFromRow(r) {
-    if (r.origine === 'gestione_srl' && r.metadata?.kind === 'income' && r.metadata?.payload) return { ...r.metadata.payload, _cloudRowId: r.id };
+    if (r.origine === 'gestione_srl') {
+      if (r.metadata?.kind === 'income' && r.metadata?.payload) return { ...r.metadata.payload, _cloudRowId: r.id };
+      return null;
+    }
     const net = num(r.imponibile ?? r.importo);
     return {
       id: `cloud-${r.id}`, date: r.data_competenza || r.data_movimento || today(), amount: net,
       vatRate: num(r.aliquota_iva), customer: r.fornitore || r.metadata?.customer_name || '', docNo: r.numero_documento || r.riferimento || '',
       category: r.categoria || 'Entrata DrinkWise', description: r.descrizione || '', paid: String(r.stato_pagamento || '').toLowerCase() === 'da_pagare' ? 'no' : 'yes',
-      paymentMethod: r.metodo_pagamento || 'Altro', _cloudReadOnly: r.origine !== 'gestione_srl', _cloudOrigin: r.origine || 'DrinkWise', _cloudRowId: r.id
+      paymentMethod: r.metodo_pagamento || 'Altro', _cloudReadOnly: true, _cloudOrigin: r.origine || 'DrinkWise', _cloudRowId: r.id
     };
   }
 
@@ -134,7 +137,7 @@
     const ownIncome = ownRows.map(cloudIncomeFromRow).filter(Boolean);
     const ownExpense = ownRows.map(cloudExpenseFromRow).filter(Boolean);
     const ownTax = ownRows.map(cloudTaxFromRow).filter(Boolean);
-    const externalIncome = (rows || []).filter(r => r.tipo === 'entrata' && r.origine !== 'gestione_srl' && r.fiscalmente_rilevante !== false).map(cloudIncomeFromRow);
+    const externalIncome = (rows || []).filter(r => r.tipo === 'entrata' && r.origine !== 'gestione_srl' && r.fiscalmente_rilevante !== false).map(cloudIncomeFromRow).filter(Boolean);
 
     const localOwnCount = incomes.filter(x => !x._cloudReadOnly).length + expenses.filter(x => !x._cloudReadOnly).length + taxPayments.length;
     if (!migrationPass && ownRows.length === 0 && localOwnCount > 0) {
