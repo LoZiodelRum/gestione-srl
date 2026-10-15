@@ -1,6 +1,6 @@
-const CACHE='gestione-srl-v22-expense-accounting-fix';
+const CACHE='gestione-srl-v23-expense-cash-display';
 const ASSETS=['./','./index.html','./styles.css?v=13','./mobile.css?v=20','./app.js?v=13','./manifest.json','./icon.svg','./supabase-config.js','./supabase-sync.js','./gestione-srl-auth.js','./expense-accounting-fix.js','./balance-inps.js'];
-const CLOUD_SCRIPTS=`<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase-config.js?v=17"></script><script src="./expense-accounting-fix.js?v=22"></script><script src="./supabase-sync.js?v=22"></script><script src="./gestione-srl-auth.js?v=17"></script><script src="./balance-inps.js?v=21"></script>`;
+const CLOUD_SCRIPTS=`<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase-config.js?v=17"></script><script src="./expense-accounting-fix.js?v=23"></script><script src="./supabase-sync.js?v=22"></script><script src="./gestione-srl-auth.js?v=17"></script><script src="./balance-inps.js?v=21"></script>`;
 const MOBILE_STYLE='<link rel="stylesheet" href="./mobile.css?v=20" />';
 
 self.addEventListener('install',event=>{
@@ -21,7 +21,8 @@ function enhanceHtml(html){
   if(!html.includes('gestione-srl-auth.js')) {
     html=html.replace('</body>',`${CLOUD_SCRIPTS}</body>`);
   } else {
-    if(!html.includes('expense-accounting-fix.js')) html=html.replace('</body>','<script src="./expense-accounting-fix.js?v=22"></script></body>');
+    html=html.replace(/<script src="\.\/expense-accounting-fix\.js\?v=\d+"><\/script>/g,'');
+    html=html.replace('</body>','<script src="./expense-accounting-fix.js?v=23"></script></body>');
     if(!html.includes('balance-inps.js')) html=html.replace('</body>','<script src="./balance-inps.js?v=21"></script></body>');
   }
   return html;
