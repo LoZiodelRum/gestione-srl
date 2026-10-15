@@ -77,33 +77,8 @@
     });
   };
 
-  function enforceExpenseCards() {
-    document.querySelectorAll('#expenseList .invoice-item.expense').forEach(card => {
-      const btn = card.querySelector('[data-del-expense]') || card.querySelector('[data-edit-expense]');
-      const id = btn?.dataset.delExpense || btn?.dataset.editExpense;
-      if (!id) return;
-      const x = expenses.find(v => String(v.id) === String(id));
-      if (!x) return;
-      const c = calcExpense(x);
-      const shown = displayExpenseAmount(x,c);
-      const strong = card.querySelector('.invoice-top strong');
-      if (strong) strong.textContent = money(shown);
-      const meta = card.querySelector('.invoice-meta');
-      if (meta && x.type !== 'salary' && x.type !== 'administrator') {
-        meta.textContent = `Imponibile/costo base: ${money(c.taxableBase)} · IVA: ${money(c.vat)} · IVA detraibile: ${c.vatDeduct>0?money(c.vatDeduct)+' ('+clampPct(x.vatDeduct)+'%)':'No'}${c.nonDeductibleVat>0?' · IVA non detraibile nel costo: '+money(c.nonDeductibleVat):''} · Costo economico: ${money(c.economicCost)} · Totale documento: ${money(c.grossDocument)} · ${x.paid==='yes'?'Uscita effettiva':'Da pagare al fornitore'}: ${money(shown)} · Ritenuta: ${money(c.withholding)} · ${x.paid==='yes'?'Pagata':'Da pagare'}${x.docNo?' · Doc. '+x.docNo:''}`;
-      }
-    });
-  }
-
   if ($('expenseYearFilter')) $('expenseYearFilter').onchange = renderExpense;
   if ($('expenseSearch')) $('expenseSearch').oninput = renderExpense;
 
-  const observer = new MutationObserver(() => enforceExpenseCards());
-  const listRoot = $('expenseList');
-  if (listRoot) observer.observe(listRoot, { childList:true, subtree:true });
-
   renderAll();
-  enforceExpenseCards();
-  setTimeout(() => { renderExpense(); enforceExpenseCards(); }, 0);
-  setTimeout(() => { renderExpense(); enforceExpenseCards(); }, 500);
 })();
