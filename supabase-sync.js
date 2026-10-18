@@ -115,8 +115,36 @@
   }
 
   function cloudExpenseFromRow(r) {
-    if (r.origine === 'gestione_srl' && r.metadata?.kind === 'expense' && r.metadata?.payload) return { ...r.metadata.payload, _cloudRowId: r.id };
-    return null;
+    if (r.origine === 'gestione_srl' && r.metadata?.kind === 'expense' && r.metadata?.payload) {
+      return { ...r.metadata.payload, _cloudRowId: r.id };
+    }
+    if (r.origine === 'gestione_srl') return null;
+
+    const base = num(r.imponibile ?? r.importo);
+    const vatRate = num(r.aliquota_iva);
+    const paid = String(r.stato_pagamento || '').toLowerCase() === 'da_pagare' ? 'no' : 'yes';
+    return {
+      id: `cloud-${r.id}`,
+      date: r.data_competenza || r.data_movimento || today(),
+      type: 'other',
+      amount: base,
+      vatRate,
+      vatDeductible: num(r.iva_detraibile_pct) > 0 ? 'yes' : 'no',
+      vatDeduct: num(r.iva_detraibile_pct),
+      iresDeduct: num(r.deducibile_pct ?? 100),
+      irapDeduct: num(r.metadata?.irap_deductible_pct ?? r.deducibile_pct ?? 100),
+      pensionRate: 0,
+      withholdingRate: 0,
+      supplier: r.fornitore || '',
+      docNo: r.numero_documento || r.riferimento || '',
+      category: r.categoria || 'Uscita DrinkWise',
+      description: r.descrizione || '',
+      paid,
+      paymentMethod: r.metodo_pagamento || 'Altro',
+      _cloudReadOnly: true,
+      _cloudOrigin: r.origine || 'DrinkWise',
+      _cloudRowId: r.id
+    };
   }
 
   function cloudTaxFromRow(r) {
@@ -138,6 +166,7 @@
     const ownExpense = ownRows.map(cloudExpenseFromRow).filter(Boolean);
     const ownTax = ownRows.map(cloudTaxFromRow).filter(Boolean);
     const externalIncome = (rows || []).filter(r => r.tipo === 'entrata' && r.origine !== 'gestione_srl' && r.fiscalmente_rilevante !== false).map(cloudIncomeFromRow).filter(Boolean);
+    const externalExpense = (rows || []).filter(r => r.tipo === 'uscita' && r.origine !== 'gestione_srl' && r.fiscalmente_rilevante !== false).map(cloudExpenseFromRow).filter(Boolean);
 
     const localOwnCount = incomes.filter(x => !x._cloudReadOnly).length + expenses.filter(x => !x._cloudReadOnly).length + taxPayments.length;
     if (!migrationPass && ownRows.length === 0 && localOwnCount > 0) {
@@ -147,7 +176,7 @@
     }
 
     incomes = [...ownIncome, ...externalIncome];
-    expenses = ownExpense;
+    expenses = [...ownExpense, ...externalExpense];
     taxPayments = ownTax;
     if (remoteSettings?.settings && Object.keys(remoteSettings.settings).length) settings = Object.assign({}, DEFAULT_SETTINGS, remoteSettings.settings);
     originalPersist();
@@ -228,6 +257,18 @@
       const id = String(x.id).replace(/"/g, '\\"');
       const edit = document.querySelector(`[data-edit-income="${id}"]`);
       const del = document.querySelector(`[data-del-income="${id}"]`);
+      [edit, del].forEach(b => { if (b) { b.disabled = true; b.title = 'Dato sincronizzato da DrinkWise'; } });
+      const article = edit?.closest('.invoice-item') || del?.closest('.invoice-item');
+      if (article) {
+        article.classList.add('cloud-readonly');
+        if (!article.querySelector('.cloud-badge')) article.querySelector('.invoice-desc')?.insertAdjacentHTML('beforeend', `<span class="cloud-badge">${safe(x._cloudOrigin || 'DrinkWise')}</span>`);
+      }
+    });
+
+    expenses.filter(x => x._cloudReadOnly).forEach(x => {
+      const id = String(x.id).replace(/"/g, '\\"');
+      const edit = document.querySelector(`[data-edit-expense="${id}"]`);
+      const del = document.querySelector(`[data-del-expense="${id}"]`);
       [edit, del].forEach(b => { if (b) { b.disabled = true; b.title = 'Dato sincronizzato da DrinkWise'; } });
       const article = edit?.closest('.invoice-item') || del?.closest('.invoice-item');
       if (article) {
