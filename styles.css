@@ -125,3 +125,157 @@ html{background:#eef2f7}body{margin:0;background:#eef2f7;font-family:-apple-syst
   #standardExpenseForm .field-row>.field.grow>.percent-input{width:230px;max-width:230px}
   .description-card.template-card .field select{width:520px;max-width:520px}
 }
+
+
+/* V26 — desktop full-width ottimizzato */
+@media (min-width: 1000px){
+  html,body{width:100%;min-width:100%;overflow-x:hidden}
+  .app-shell{
+    width:100%;
+    max-width:none;
+    margin:0;
+    padding-bottom:76px;
+    box-shadow:none;
+  }
+  .topbar{
+    padding:24px 34px 20px;
+  }
+  .view{
+    width:100%;
+    padding:22px 34px 30px;
+  }
+  .period-bar{
+    width:100%;
+    gap:20px;
+    padding:15px 18px;
+  }
+  .period-bar .field.grow{
+    flex:1 1 0;
+  }
+  .period-bar .field select,
+  .period-bar .field input{
+    width:100%;
+    max-width:none;
+    min-width:0;
+  }
+
+  .dashboard-entry-grid{
+    grid-template-columns:minmax(0,2.2fr) minmax(300px,.8fr);
+    gap:20px;
+    align-items:stretch;
+  }
+  .quick-entry-card,
+  .vat-input-card{
+    padding:20px;
+  }
+  .quick-entry-card .field-row{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:18px;
+    align-items:end;
+  }
+  .quick-entry-card .field-row .field.grow{
+    flex:auto;
+    max-width:none;
+    min-width:0;
+  }
+  .quick-entry-card .field-row .field.grow input,
+  .quick-entry-card .field-row .field.grow select,
+  .quick-entry-card>.field:not(:first-child) input{
+    width:100%;
+    max-width:none;
+  }
+  .quick-entry-card>.field:not(:first-child){
+    max-width:none;
+  }
+  .quick-entry-card .hero-amount{
+    width:min(520px,100%);
+    max-width:520px;
+  }
+  .vat-input-card{
+    align-items:stretch;
+  }
+  .vat-input-card .field,
+  .vat-input-card .field select,
+  .vat-input-card .vat-result{
+    width:100%;
+    max-width:none;
+  }
+
+  #standardExpenseForm .field-row,
+  #payrollExpenseForm .field-row,
+  .description-card .field-row{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:22px;
+    align-items:end;
+  }
+  #standardExpenseForm .field-row>.field.grow{
+    flex:auto;
+    max-width:none;
+  }
+  #standardExpenseForm .field-row>.field.grow>select,
+  #standardExpenseForm .field-row>.field.grow>.amount-wrap,
+  #standardExpenseForm .field-row>.field.grow>.percent-input,
+  .description-card .field input,
+  .description-card .field select,
+  .description-card>input{
+    width:100%;
+    max-width:none;
+  }
+  .description-card.template-card .field select{
+    width:100%;
+    max-width:none;
+  }
+
+  .field select,
+  .field input:not([type="search"]),
+  .amount-wrap,
+  .money-input,
+  .percent-input{
+    width:100%;
+    max-width:none;
+  }
+  .field input[type="date"]{
+    max-width:none;
+  }
+  .field input[type="number"]{
+    max-width:none;
+  }
+
+  .cards-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:16px;
+  }
+  .reserve-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:16px;
+  }
+  .income-summary-grid,
+  .expense-summary-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .balance-columns{
+    gap:20px;
+  }
+  .settings-card,
+  .list-section{
+    padding:18px;
+  }
+  .filter-row.income-filters{
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:12px;
+  }
+
+  .bottom-nav{
+    left:0;
+    transform:none;
+    width:100%;
+    max-width:none;
+    padding-left:24px;
+    padding-right:24px;
+  }
+  .bottom-nav.six-cols{
+    grid-template-columns:repeat(6,minmax(0,1fr));
+  }
+}
