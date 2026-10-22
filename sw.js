@@ -1,5 +1,5 @@
-const CACHE='gestione-srl-v25-shared-ledger';
-const ASSETS=['./','./index.html','./styles.css?v=13','./mobile.css?v=20','./app.js?v=13','./manifest.json','./icon.svg','./supabase-config.js','./supabase-sync.js','./gestione-srl-auth.js','./expense-accounting-fix.js','./balance-inps.js'];
+const CACHE='gestione-srl-v26-desktop-fullwidth';
+const ASSETS=['./','./index.html','./styles.css?v=26','./mobile.css?v=20','./app.js?v=13','./manifest.json','./icon.svg','./supabase-config.js','./supabase-sync.js','./gestione-srl-auth.js','./expense-accounting-fix.js','./balance-inps.js'];
 const CLOUD_SCRIPTS=`<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./supabase-config.js?v=17"></script><script src="./expense-accounting-fix.js?v=24"></script><script src="./supabase-sync.js?v=25"></script><script src="./gestione-srl-auth.js?v=17"></script><script src="./balance-inps.js?v=21"></script>`;
 const MOBILE_STYLE='<link rel="stylesheet" href="./mobile.css?v=20" />';
 
